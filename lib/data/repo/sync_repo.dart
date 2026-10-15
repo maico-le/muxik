@@ -6,20 +6,25 @@ import '../db/app_database.dart';
 import '../yt/yt_client.dart';
 import '../yt/yt_models.dart';
 
+import '../../core/network/network_policy.dart';
+
 /// Repository responsible for offline-first playlist mutations, pending operations queue,
 /// sync retry with exponential backoff, and Random Shuffle Bag.
 class SyncRepo {
   final AppDatabase _db;
   final YtClient _ytClient;
+  final NetworkPolicy? _networkPolicy;
   final bool autoSync;
   bool _isProcessing = false;
 
   SyncRepo({
     required AppDatabase db,
     required YtClient ytClient,
+    NetworkPolicy? networkPolicy,
     this.autoSync = false,
   })  : _db = db,
-        _ytClient = ytClient;
+        _ytClient = ytClient,
+        _networkPolicy = networkPolicy;
 
   // --- Stream Pending Ops Count for UI Badges ---
 
@@ -310,6 +315,10 @@ class SyncRepo {
 
   /// Process pending operations with exponential backoff
   Future<void> processPendingOps() async {
+    final policy = _networkPolicy;
+    if (policy != null && !policy.shouldAllowSync) {
+      return;
+    }
     if (_isProcessing) return;
     _isProcessing = true;
 

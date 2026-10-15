@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../theme/pixel_theme.dart';
+import 'pixel_widgets.dart';
 
 /// Retro Pixel Dialog with 0-radius, solid border, and pixel buttons
 class PixelDialog extends StatelessWidget {
@@ -28,6 +29,34 @@ class PixelDialog extends StatelessWidget {
         content: content,
         actions: actions,
       ),
+    );
+  }
+
+  static Future<bool?> showConfirmation({
+    required BuildContext context,
+    required String title,
+    required String message,
+    String confirmText = 'XÁC NHẬN',
+    String cancelText = 'HUỶ',
+  }) {
+    return show<bool>(
+      context: context,
+      title: title,
+      content: Text(message),
+      actions: [
+        PixelButton(
+          isSmall: true,
+          onPressed: () => Navigator.of(context).pop(false),
+          child: Text(cancelText),
+        ),
+        const SizedBox(width: 8),
+        PixelButton(
+          isSmall: true,
+          isPrimary: true,
+          onPressed: () => Navigator.of(context).pop(true),
+          child: Text(confirmText),
+        ),
+      ],
     );
   }
 

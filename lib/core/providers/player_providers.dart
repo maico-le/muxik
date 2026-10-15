@@ -5,6 +5,8 @@ import '../../audio/audio_handler.dart';
 import '../../data/yt/stream_resolver.dart';
 import 'auth_providers.dart';
 
+import 'network_providers.dart';
+
 /// StreamResolver Provider
 final streamResolverProvider = Provider<StreamResolver>((ref) {
   final ytClient = ref.watch(ytClientProvider);
@@ -21,11 +23,17 @@ final playerServiceProvider = ChangeNotifierProvider<PlayerService>((ref) {
   final streamResolver = ref.watch(streamResolverProvider);
   final queueController = ref.watch(queueControllerProvider);
   final db = ref.watch(appDatabaseProvider);
+  final cacheManager = ref.watch(audioCacheManagerProvider);
+  final networkPolicy = ref.watch(networkPolicyProvider);
+  final dataMeter = ref.watch(dataMeterProvider);
 
   final player = PlayerService(
     streamResolver: streamResolver,
     queueController: queueController,
     db: db,
+    cacheManager: cacheManager,
+    networkPolicy: networkPolicy,
+    dataMeter: dataMeter,
   );
 
   ref.onDispose(() => player.dispose());

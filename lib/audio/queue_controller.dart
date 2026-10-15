@@ -257,6 +257,22 @@ class QueueController extends ChangeNotifier {
     return currentTrack;
   }
 
+  /// Peek next track for prefetching without advancing queue state.
+  /// Returns null when in shuffle mode (unpredictable next track per spec 7.4) or at queue end.
+  YtTrack? peekNext() {
+    if (_queue.isEmpty || _currentIndex == -1) return null;
+    if (_loopMode == LoopMode.one) return currentTrack;
+    if (_loopMode == LoopMode.oneTimesN && _currentNRepeats < _loopCountN - 1) return currentTrack;
+    if (_shuffleOn) return null; // Spec 7.4: Không prefetch khi shuffle chưa biết bài kế
+
+    if (_currentIndex + 1 < _queue.length) {
+      return _queue[_currentIndex + 1];
+    } else if (_loopMode == LoopMode.all && _queue.isNotEmpty) {
+      return _queue[0];
+    }
+    return null;
+  }
+
   // --- Shuffle Bag & Loop Modes ---
 
   void toggleShuffle() {

@@ -1,10 +1,14 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:drift/drift.dart' show Value;
 import '../data/yt/stream_resolver.dart';
 import '../data/yt/yt_models.dart';
 import '../data/db/app_database.dart';
+import '../core/network/network_policy.dart';
+import '../core/network/data_meter.dart';
+import 'audio_cache_manager.dart';
 import 'queue_controller.dart';
 
 enum PlayerStatus {
@@ -21,6 +25,9 @@ class PlayerService extends ChangeNotifier {
   final StreamResolver _streamResolver;
   final QueueController _queueController;
   final AppDatabase _db;
+  final AudioCacheManager? _cacheManager;
+  final NetworkPolicy? _networkPolicy;
+  final DataMeter? _dataMeter;
 
   PlayerStatus _status = PlayerStatus.idle;
   String? _errorMessage;
@@ -32,16 +39,23 @@ class PlayerService extends ChangeNotifier {
   StreamSubscription? _positionSub;
   StreamSubscription? _durationSub;
   StreamSubscription? _bufferedSub;
+  Timer? _cellularPauseTimer;
 
   PlayerService({
     AudioPlayer? audioPlayer,
     required StreamResolver streamResolver,
     required QueueController queueController,
     required AppDatabase db,
+    AudioCacheManager? cacheManager,
+    NetworkPolicy? networkPolicy,
+    DataMeter? dataMeter,
   })  : _audioPlayer = audioPlayer ?? AudioPlayer(),
         _streamResolver = streamResolver,
         _queueController = queueController,
-        _db = db {
+        _db = db,
+        _cacheManager = cacheManager,
+        _networkPolicy = networkPolicy,
+        _dataMeter = dataMeter {
     _initListeners();
     _queueController.addListener(_onQueueChanged);
   }
@@ -67,8 +81,10 @@ class PlayerService extends ChangeNotifier {
         _onTrackCompleted();
       } else if (state.playing) {
         _status = PlayerStatus.playing;
+        _cellularPauseTimer?.cancel();
       } else {
         _status = PlayerStatus.paused;
+        _handleCellularPauseTimeout();
       }
       notifyListeners();
     });
@@ -89,6 +105,18 @@ class PlayerService extends ChangeNotifier {
     });
   }
 
+  void _handleCellularPauseTimeout() {
+    _cellularPauseTimer?.cancel();
+    if (_networkPolicy?.isCellular == true) {
+      // Spec 7.4: Dừng tải khi pause quá 60s trên di động
+      _cellularPauseTimer = Timer(const Duration(seconds: 60), () {
+        if (_status == PlayerStatus.paused) {
+          _audioPlayer.pause();
+        }
+      });
+    }
+  }
+
   void _onQueueChanged() {
     notifyListeners();
   }
@@ -105,7 +133,7 @@ class PlayerService extends ChangeNotifier {
     await _resolveAndPlay();
   }
 
-  /// Resolve stream and start playback
+  /// Resolve stream and start playback with data saver policy & LRU cache
   Future<void> _resolveAndPlay({Duration? startPosition}) async {
     final track = currentTrack;
     if (track == null) {
@@ -120,14 +148,47 @@ class PlayerService extends ChangeNotifier {
     notifyListeners();
 
     try {
+      final preferLow = _networkPolicy?.shouldPreferLowBitrate ?? false;
       final resolved = await _streamResolver.resolve(
         track.videoId,
-        preferLowBitrate: false,
+        preferLowBitrate: preferLow,
       );
 
-      await _audioPlayer.setUrl(resolved.url, initialPosition: startPosition);
+      // 1. Check local audio cache (0 network bytes!)
+      final cachedFile = await _cacheManager?.getCachedFile(track.videoId, resolved.itag);
+      if (cachedFile != null && await cachedFile.exists()) {
+        await _audioPlayer.setAudioSource(
+          AudioSource.file(cachedFile.path),
+          initialPosition: startPosition,
+        );
+      } else {
+        // Stream and cache to disk
+        final cachePath = await _cacheManager?.getFilePath(track.videoId, resolved.itag);
+        if (cachePath != null) {
+          final cacheFile = File(cachePath);
+          // ignore: experimental_member_use
+          final source = LockCachingAudioSource(
+            Uri.parse(resolved.url),
+            cacheFile: cacheFile,
+          );
+          await _audioPlayer.setAudioSource(source, initialPosition: startPosition);
+
+          if (resolved.contentLength != null && resolved.contentLength! > 0) {
+            _dataMeter?.recordUsage(kind: 'audio', bytes: resolved.contentLength!);
+          }
+
+          _checkAndRegisterCache(track.videoId, resolved.itag, cacheFile);
+        } else {
+          await _audioPlayer.setUrl(resolved.url, initialPosition: startPosition);
+          if (resolved.contentLength != null && resolved.contentLength! > 0) {
+            _dataMeter?.recordUsage(kind: 'audio', bytes: resolved.contentLength!);
+          }
+        }
+      }
+
       await _audioPlayer.play();
       _status = PlayerStatus.playing;
+      _cellularPauseTimer?.cancel();
 
       // Update lastPlayedAt in database
       await (_db.update(_db.tracks)..where((t) => t.videoId.equals(track.videoId))).write(
@@ -137,6 +198,9 @@ class PlayerService extends ChangeNotifier {
       );
 
       _persistQueueState();
+
+      // Trigger conditional prefetch for next track
+      _triggerConditionalPrefetch();
     } catch (e) {
       _status = PlayerStatus.error;
       _errorMessage = 'Failed to play track: $e';
@@ -145,6 +209,33 @@ class PlayerService extends ChangeNotifier {
       // Per spec 5.8: Mark track unplayable and advance automatically
       _onTrackCompleted();
     }
+  }
+
+  void _checkAndRegisterCache(String videoId, int itag, File cacheFile) {
+    Future.delayed(const Duration(seconds: 5), () async {
+      if (await cacheFile.exists()) {
+        final len = await cacheFile.length();
+        if (len > 0) {
+          await _cacheManager?.registerCacheEntry(videoId, itag, cacheFile.path, len);
+        }
+      }
+    });
+  }
+
+  void _triggerConditionalPrefetch() {
+    final policy = _networkPolicy;
+    if (policy == null || !policy.shouldPrefetch) return;
+    final nextTrack = _queueController.peekNext();
+    if (nextTrack == null) return;
+
+    unawaited(() async {
+      try {
+        await _streamResolver.resolve(
+          nextTrack.videoId,
+          preferLowBitrate: policy.shouldPreferLowBitrate,
+        );
+      } catch (_) {}
+    }());
   }
 
   /// Handle track completion according to loop mode & queue
@@ -234,6 +325,7 @@ class PlayerService extends ChangeNotifier {
 
   @override
   void dispose() {
+    _cellularPauseTimer?.cancel();
     _playerStateSub?.cancel();
     _positionSub?.cancel();
     _durationSub?.cancel();

@@ -95,3 +95,29 @@ This log documents key technical choices made during the development of Musical.
   - **Two-Phase Reorder**: Reordering playlist tracks within `playlist_tracks` uses a two-phase transaction (first setting negative temporary indices `-(i + 1)` and then zero-based final indices `i`) to avoid violating the compound primary key constraint `(playlist_id, position)` in SQLite.
   - **Random Shuffle Bag**: Generates an unbiased non-repeating queue of 50 tracks from the user's entire library or a specific playlist, with an option to instantly persist the resulting queue as a new playlist.
 
+---
+
+### [DEC-007] Cellular Data Saving Architecture, LRU Audio Cache & Data Meter
+- **Date**: 2026-10-15
+- **Status**: Accepted
+- **Context**: Cellular data is metered and costly; users require $\le 25\text{MB/hour}$ audio consumption with verifiable byte tracking in app and offline cache replay.
+- **Decision**:
+  - **`NetworkPolicy` Reactive Engine**:
+    - Monitors network type (`wifi`, `cellular`, `offline`) via `connectivity_plus` and treats metered Wi-Fi hotspots as cellular.
+    - Emits reactive state changes without app restart.
+    - Default profiles: `DataSaverMode.saving` on cellular and `DataSaverMode.highQuality` on Wi-Fi.
+    - **Super Data Saver Mode**: Hard stops remote thumbnail downloads (renders fallback pixel note), enforces lowest Opus 48kbps stream, disables prefetching, producing $< 20\text{MB/hour}$.
+    - **Monthly Data Cap & Auto Throttle**: When cellular usage reaches user-configured threshold (e.g. 500MB), automatically engages Super Data Saver.
+  - **Bitrate Selection**:
+    - Cellular: Lowest acceptable bitrate $\ge 45\text{kbps}$ (typically Opus itag 249/250 or AAC itag 139) resulting in $48000 \div 8 \times 3600 \approx 20.6\text{MB/hour} \le 25\text{MB/hour}$.
+    - Wi-Fi: High quality Opus itag 251 (~160kbps) or AAC itag 140 (~128kbps).
+  - **LRU Disk Audio Cache**:
+    - Managed by `AudioCacheManager` in app support directory, indexed in Drift SQLite `cache_index(videoId, itag, path, bytes, lastAccess)`.
+    - Cached track replay uses `AudioSource.file`, consuming strictly **0 network bytes**.
+    - Non-cached tracks stream and write to disk concurrently via `LockCachingAudioSource`.
+    - Least Recently Used (LRU) eviction runs automatically when total cached bytes exceed the configurable limit (default 500MB).
+  - **Data Meter & Interceptors**:
+    - `DataMeter` persists daily byte totals into SQLite `data_usage(day, network, kind, bytes)`.
+    - Dio Interceptor (`DataMeterInterceptor`) automatically tallies API requests and response payloads.
+    - Settings screen visualizes 7-day usage with an 8-bit stepped pixel bar chart.
+
