@@ -4,6 +4,7 @@ import '../../features/library/library_screen.dart';
 import '../../features/search/search_screen.dart';
 import '../../features/settings/settings_screen.dart';
 import '../../features/auth/login_screen.dart';
+import '../../features/playlist/playlist_detail_screen.dart';
 import '../theme/pixel_theme.dart';
 import '../widgets/pixel_icon.dart';
 
@@ -44,6 +45,14 @@ final appRouter = GoRouter(
       path: '/login',
       parentNavigatorKey: _rootNavigatorKey,
       builder: (context, state) => const LoginScreen(),
+    ),
+    GoRoute(
+      path: '/playlist/:id',
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (context, state) {
+        final playlistId = state.pathParameters['id'] ?? '';
+        return PlaylistDetailScreen(playlistId: playlistId);
+      },
     ),
   ],
 );

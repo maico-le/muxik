@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:crypto/crypto.dart';
 import 'package:dio/dio.dart';
 import 'yt_models.dart';
+import 'innertube_parser.dart';
 
 /// Unofficial YouTube Music InnerTube API Client (WEB_REMIX & fallbacks)
 class YtClient {
@@ -164,7 +165,7 @@ class YtClient {
   }
 
   /// Browse Library Playlists (`FEmusic_liked_playlists`)
-  Future<List<YtPlaylist>> getLibraryPlaylists({String? continuation}) async {
+  Future<PageResult<YtPlaylist>> getLibraryPlaylistsPage({String? continuation}) async {
     const url = 'https://music.youtube.com/youtubei/v1/browse?prettyPrint=false';
     final body = {
       'context': buildContext(),
@@ -179,53 +180,11 @@ class YtClient {
       options: Options(headers: baseHeaders),
     );
 
-    final data = response.data ?? {};
-    final playlists = <YtPlaylist>[];
-
-    // Parse two row items
-    void searchGridItems(dynamic node) {
-      if (node is Map<String, dynamic>) {
-        if (node.containsKey('musicTwoRowItemRenderer')) {
-          final item = node['musicTwoRowItemRenderer'] as Map<String, dynamic>;
-          final title = _extractRunsText(item['title']) ?? '';
-          final navEndpoint = item['navigationEndpoint']?['browseEndpoint'];
-          var browseId = navEndpoint?['browseId'] as String? ?? '';
-          if (browseId.startsWith('VL')) {
-            browseId = browseId.substring(2);
-          }
-          final thumb = _extractThumbnail(item['thumbnailRenderer']);
-          final subtitle = _extractRunsText(item['subtitle']);
-          final countMatch = RegExp(r'(\d+)').firstMatch(subtitle ?? '');
-          final trackCount = countMatch != null ? int.tryParse(countMatch.group(1)!) ?? 0 : 0;
-
-          if (browseId.isNotEmpty) {
-            playlists.add(
-              YtPlaylist(
-                id: browseId,
-                title: title.isNotEmpty ? title : 'Untitled Playlist',
-                thumbUrl: thumb,
-                trackCount: trackCount,
-              ),
-            );
-          }
-        } else {
-          for (final val in node.values) {
-            searchGridItems(val);
-          }
-        }
-      } else if (node is List) {
-        for (final elem in node) {
-          searchGridItems(elem);
-        }
-      }
-    }
-
-    searchGridItems(data);
-    return playlists;
+    return InnerTubeParser.parseLibraryPlaylists(response.data ?? {});
   }
 
   /// Browse songs in a playlist (`VL<playlistId>`)
-  Future<List<YtTrack>> getPlaylistTracks(String playlistId, {String? continuation}) async {
+  Future<PageResult<YtTrack>> getPlaylistTracksPage(String playlistId, {String? continuation}) async {
     const url = 'https://music.youtube.com/youtubei/v1/browse?prettyPrint=false';
     final browseId = playlistId.startsWith('VL') ? playlistId : 'VL$playlistId';
     final body = {
@@ -241,49 +200,18 @@ class YtClient {
       options: Options(headers: baseHeaders),
     );
 
-    final data = response.data ?? {};
-    final tracks = <YtTrack>[];
+    return InnerTubeParser.parsePlaylistTracks(response.data ?? {});
+  }
 
-    void searchListItems(dynamic node) {
-      if (node is Map<String, dynamic>) {
-        if (node.containsKey('musicResponsiveListItemRenderer')) {
-          final item = node['musicResponsiveListItemRenderer'] as Map<String, dynamic>;
-          final videoId = item['playlistItemData']?['videoId'] as String? ??
-              _extractVideoIdFromFlexColumns(item['flexColumns']);
-          final title = _extractTitleFromFlex(item['flexColumns']) ?? 'Unknown Title';
-          final artists = _extractArtistsFromFlex(item['flexColumns']);
-          final album = _extractAlbumFromFlex(item['flexColumns']);
-          final durationMs = _extractDurationFromFlex(item['flexColumns']);
-          final thumb = _extractThumbnail(item['thumbnail']);
-          final setVideoId = item['playlistSetVideoId'] as String?;
+  /// Legacy list methods for backwards compatibility
+  Future<List<YtPlaylist>> getLibraryPlaylists({String? continuation}) async {
+    final page = await getLibraryPlaylistsPage(continuation: continuation);
+    return page.items;
+  }
 
-          if (videoId != null && videoId.isNotEmpty) {
-            tracks.add(
-              YtTrack(
-                videoId: videoId,
-                title: title,
-                artists: artists,
-                album: album,
-                durationMs: durationMs,
-                thumbUrl: thumb,
-                setVideoId: setVideoId,
-              ),
-            );
-          }
-        } else {
-          for (final val in node.values) {
-            searchListItems(val);
-          }
-        }
-      } else if (node is List) {
-        for (final elem in node) {
-          searchListItems(elem);
-        }
-      }
-    }
-
-    searchListItems(data);
-    return tracks;
+  Future<List<YtTrack>> getPlaylistTracks(String playlistId, {String? continuation}) async {
+    final page = await getPlaylistTracksPage(playlistId, continuation: continuation);
+    return page.items;
   }
 
   /// Query `player` endpoint to obtain stream formats
@@ -362,74 +290,5 @@ class YtClient {
       }
     }
     return '';
-  }
-
-  static String? _extractVideoIdFromFlexColumns(dynamic flexCols) {
-    if (flexCols is! List) return null;
-    for (final col in flexCols) {
-      final renderer = col['musicResponsiveListItemFlexColumnRenderer'];
-      final runs = renderer?['text']?['runs'] as List<dynamic>?;
-      if (runs != null) {
-        for (final run in runs) {
-          final nav = run['navigationEndpoint'];
-          final id = nav?['watchEndpoint']?['videoId'];
-          if (id is String && id.isNotEmpty) return id;
-        }
-      }
-    }
-    return null;
-  }
-
-  static String? _extractTitleFromFlex(dynamic flexCols) {
-    if (flexCols is! List || flexCols.isEmpty) return null;
-    final firstCol = flexCols[0]['musicResponsiveListItemFlexColumnRenderer'];
-    return _extractRunsText(firstCol?['text']);
-  }
-
-  static List<String> _extractArtistsFromFlex(dynamic flexCols) {
-    if (flexCols is! List || flexCols.length < 2) return [];
-    final secondCol = flexCols[1]['musicResponsiveListItemFlexColumnRenderer'];
-    final runs = secondCol?['text']?['runs'] as List<dynamic>?;
-    if (runs == null) return [];
-    final artists = <String>[];
-    for (final run in runs) {
-      final nav = run['navigationEndpoint'];
-      final browseId = nav?['browseEndpoint']?['browseId'] as String?;
-      if (browseId != null && (browseId.startsWith('UC') || browseId.startsWith('FEmusic_library_privately_owned_artist'))) {
-        final text = run['text']?.toString();
-        if (text != null && text.isNotEmpty) {
-          artists.add(text);
-        }
-      }
-    }
-    if (artists.isEmpty && runs.isNotEmpty) {
-      // Fallback: take first run text
-      final text = runs.first['text']?.toString();
-      if (text != null && text.isNotEmpty) artists.add(text);
-    }
-    return artists;
-  }
-
-  static String? _extractAlbumFromFlex(dynamic flexCols) {
-    if (flexCols is! List || flexCols.length < 3) return null;
-    final thirdCol = flexCols[2]['musicResponsiveListItemFlexColumnRenderer'];
-    return _extractRunsText(thirdCol?['text']);
-  }
-
-  static int _extractDurationFromFlex(dynamic flexCols) {
-    if (flexCols is! List) return 0;
-    // Look for duration pattern like "3:45" or "1:02:15"
-    for (final col in flexCols) {
-      final text = _extractRunsText(col['musicResponsiveListItemFlexColumnRenderer']?['text']);
-      if (text != null && RegExp(r'^\d+:\d{2}(:\d{2})?$').hasMatch(text.trim())) {
-        final parts = text.trim().split(':').map(int.parse).toList();
-        if (parts.length == 2) {
-          return (parts[0] * 60 + parts[1]) * 1000;
-        } else if (parts.length == 3) {
-          return (parts[0] * 3600 + parts[1] * 60 + parts[2]) * 1000;
-        }
-      }
-    }
-    return 0;
   }
 }
