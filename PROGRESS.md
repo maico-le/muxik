@@ -4,8 +4,8 @@
 |:---:|---|:---:|---|
 | **M0** | **Spike**: Dev cookie -> InnerTube API (`FEmusic_liked_playlists`, `VL<id>`, `player`) -> Audio Stream -> CLI/test playback 10s | ✅ Completed | All fixtures & live InnerTube streams (3 video IDs) verified via HTTP range checks |
 | **M1** | Project setup, `PixelTheme`, pixel widget kit, routing (`go_router`), DB tables (`drift`) | ✅ Completed | PixelTheme, widgets kit, Drift SQLite DB & code generation, GoRouter, 0 analyzer issues, green tests |
-| **M2** | Authentication: WebView login + Dev cookie sheet + account switcher | 🔄 In Progress | Ready to implement |
-| **M3** | Library & Playlist view with continuation pagination + parsers + fixture tests | ⏳ Pending | |
+| **M2** | Authentication: WebView login + Dev cookie sheet + account switcher | ✅ Completed | WebView Google auth, DevCookieBottomSheet, AccountSwitcher, AuthStorage, rollback on error, unit tests passed |
+| **M3** | Library & Playlist view with continuation pagination + parsers + fixture tests | 🔄 In Progress | Ready to implement |
 | **M4** | Player: `just_audio`, queue management, shuffle bag, loop modes (OFF/ONE/ALL/ONE×N), mini player | ⏳ Pending | |
 | **M5** | Background playback: `audio_service`, notification, lock screen, audio focus | ⏳ Pending | |
 | **M6** | Search: debounced search, filters, pagination continuation, search history | ⏳ Pending | |

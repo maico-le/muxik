@@ -2,7 +2,7 @@
 class YtAccount {
   final String email;
   final String name;
-  final String thumbUrl;
+  final String? thumbUrl;
   final String? pageId;
   final int authUser;
   final bool isUsed;
@@ -10,7 +10,7 @@ class YtAccount {
   const YtAccount({
     required this.email,
     required this.name,
-    required this.thumbUrl,
+    this.thumbUrl,
     this.pageId,
     this.authUser = 0,
     this.isUsed = false,
