@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/theme/pixel_theme.dart';
+import '../../core/theme/theme_provider.dart';
 import '../../core/widgets/pixel_widgets.dart';
 import '../../core/widgets/pixel_dialog.dart';
 import '../../core/providers/auth_providers.dart';
@@ -23,6 +24,7 @@ class SettingsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = context.pixelTheme;
+    final appTheme = ref.watch(appThemeProvider);
     final activeAccountAsync = ref.watch(activeAccountProvider);
     final networkPolicy = ref.watch(networkPolicyProvider);
     final cacheManager = ref.watch(audioCacheManagerProvider);
@@ -145,7 +147,151 @@ class SettingsScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 16),
 
-          // 2. Data Meter & Real Usage Card (Core Requirement)
+          // 2. Theme & Color Scheme Card
+          PixelCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'GIAO DIỆN & MÀU SẮC (THEME & ACCENT)',
+                  style: TextStyle(
+                    fontFamily: 'monospace',
+                    fontWeight: FontWeight.bold,
+                    color: theme.primary,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'Chế độ hiển thị (Theme Mode):',
+                  style: TextStyle(
+                    fontFamily: 'monospace',
+                    fontSize: 11,
+                    color: theme.textSecondary,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    _buildThemeModeButton(
+                      context: context,
+                      label: 'TỰ ĐỘNG',
+                      icon: Icons.brightness_auto,
+                      isSelected: appTheme.mode == ThemeMode.system,
+                      onTap: () => ref.read(appThemeProvider.notifier).setThemeMode(ThemeMode.system),
+                    ),
+                    const SizedBox(width: 8),
+                    _buildThemeModeButton(
+                      context: context,
+                      label: 'SÁNG',
+                      icon: Icons.light_mode,
+                      isSelected: appTheme.mode == ThemeMode.light,
+                      onTap: () => ref.read(appThemeProvider.notifier).setThemeMode(ThemeMode.light),
+                    ),
+                    const SizedBox(width: 8),
+                    _buildThemeModeButton(
+                      context: context,
+                      label: 'TỐI',
+                      icon: Icons.dark_mode,
+                      isSelected: appTheme.mode == ThemeMode.dark,
+                      onTap: () => ref.read(appThemeProvider.notifier).setThemeMode(ThemeMode.dark),
+                    ),
+                  ],
+                ),
+                const Divider(height: 24),
+                Text(
+                  'Màu chủ đạo (Color Scheme):',
+                  style: TextStyle(
+                    fontFamily: 'monospace',
+                    fontSize: 11,
+                    color: theme.textSecondary,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Column(
+                  children: PixelThemeScheme.values.map((scheme) {
+                    final isSelected = appTheme.scheme == scheme;
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: GestureDetector(
+                        onTap: () => ref.read(appThemeProvider.notifier).setThemeScheme(scheme),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                          decoration: BoxDecoration(
+                            color: isSelected ? theme.primary.withValues(alpha: 0.12) : theme.surface,
+                            border: Border.all(
+                              color: isSelected ? theme.primary : theme.border,
+                              width: isSelected ? 2.0 : 1.0,
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              // Dual Color Swatch in Pixel Box
+                              Container(
+                                width: 28,
+                                height: 28,
+                                decoration: BoxDecoration(
+                                  border: Border.all(color: theme.border, width: 2),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Expanded(child: Container(color: scheme.previewPrimary)),
+                                    Expanded(child: Container(color: scheme.previewSecondary)),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      scheme.displayName,
+                                      style: TextStyle(
+                                        fontFamily: 'monospace',
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 12,
+                                        color: isSelected ? theme.primary : theme.textPrimary,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      scheme.description,
+                                      style: TextStyle(
+                                        fontFamily: 'monospace',
+                                        fontSize: 10,
+                                        color: theme.textSecondary,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              if (isSelected)
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                                  color: theme.primary,
+                                  child: const Text(
+                                    'ĐANG DÙNG',
+                                    style: TextStyle(
+                                      fontFamily: 'monospace',
+                                      fontSize: 9,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // 3. Data Meter & Real Usage Card (Core Requirement)
           PixelCard(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -767,6 +913,61 @@ class SettingsScreen extends ConsumerWidget {
             ),
           );
         }).toList(),
+      ),
+    );
+  }
+
+  Widget _buildThemeModeButton({
+    required BuildContext context,
+    required String label,
+    required IconData icon,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    final theme = context.pixelTheme;
+
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+          decoration: BoxDecoration(
+            color: isSelected ? theme.primary : theme.surface,
+            border: Border.all(
+              color: isSelected ? theme.primary : theme.border,
+              width: theme.borderWidth,
+            ),
+            boxShadow: isSelected
+                ? null
+                : [
+                    BoxShadow(
+                      color: theme.border,
+                      offset: const Offset(2, 2),
+                      blurRadius: 0,
+                    ),
+                  ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                icon,
+                size: 16,
+                color: isSelected ? Colors.white : theme.textPrimary,
+              ),
+              const SizedBox(height: 4),
+              Text(
+                label,
+                style: TextStyle(
+                  fontFamily: 'monospace',
+                  fontWeight: FontWeight.bold,
+                  fontSize: 10,
+                  color: isSelected ? Colors.white : theme.textPrimary,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

@@ -1,20 +1,96 @@
 import 'package:flutter/material.dart';
 
-/// Mistral-inspired retro pixel art theme palette and styling
+/// Available Pixel Theme Color Schemes
+enum PixelThemeScheme {
+  mistral,
+  spotify,
+  blue,
+}
+
+extension PixelThemeSchemeX on PixelThemeScheme {
+  String get id {
+    switch (this) {
+      case PixelThemeScheme.mistral:
+        return 'mistral';
+      case PixelThemeScheme.spotify:
+        return 'spotify';
+      case PixelThemeScheme.blue:
+        return 'blue';
+    }
+  }
+
+  String get displayName {
+    switch (this) {
+      case PixelThemeScheme.mistral:
+        return 'Mistral Orange';
+      case PixelThemeScheme.spotify:
+        return 'Spotify Green';
+      case PixelThemeScheme.blue:
+        return 'Cyber Blue';
+    }
+  }
+
+  String get description {
+    switch (this) {
+      case PixelThemeScheme.mistral:
+        return 'Cam Mistral ấm áp cổ điển (#FA520F)';
+      case PixelThemeScheme.spotify:
+        return 'Xanh lá Spotify đặc trưng (#1DB954)';
+      case PixelThemeScheme.blue:
+        return 'Xanh dương Cyber retro (#2563EB)';
+    }
+  }
+
+  Color get previewPrimary {
+    switch (this) {
+      case PixelThemeScheme.mistral:
+        return const Color(0xFFFA520F);
+      case PixelThemeScheme.spotify:
+        return const Color(0xFF1DB954);
+      case PixelThemeScheme.blue:
+        return const Color(0xFF2563EB);
+    }
+  }
+
+  Color get previewSecondary {
+    switch (this) {
+      case PixelThemeScheme.mistral:
+        return const Color(0xFFFFAF00);
+      case PixelThemeScheme.spotify:
+        return const Color(0xFF1ED760);
+      case PixelThemeScheme.blue:
+        return const Color(0xFF38BDF8);
+    }
+  }
+
+  static PixelThemeScheme fromId(String? id) {
+    switch (id) {
+      case 'spotify':
+        return PixelThemeScheme.spotify;
+      case 'blue':
+        return PixelThemeScheme.blue;
+      case 'mistral':
+      default:
+        return PixelThemeScheme.mistral;
+    }
+  }
+}
+
+/// Retro pixel art theme palette and styling supporting multiple color schemes
 @immutable
 class PixelTheme extends ThemeExtension<PixelTheme> {
   // Brand colors
-  final Color primary; // Mistral Orange #FA520F
-  final Color primaryHover; // Bright Orange #FF8205
-  final Color amber; // Amber #FFAF00
-  final Color gold; // Gold #FFD800
-  final Color background; // Warm Cream #FFFAEB / Dark Slate #18181B
-  final Color surface; // Pure Cream #FFFDF7 / Dark Surface #27272A
-  final Color border; // Hard Black #000000 / Light White #FFFFFF
-  final Color textPrimary; // #1E1E1E / #FAFAFA
-  final Color textSecondary; // #666666 / #A1A1AA
-  final Color accentGreen; // Retro green for indicators
-  final Color accentRed; // Retro red for errors
+  final Color primary;
+  final Color primaryHover;
+  final Color amber;
+  final Color gold;
+  final Color background;
+  final Color surface;
+  final Color border;
+  final Color textPrimary;
+  final Color textSecondary;
+  final Color accentGreen;
+  final Color accentRed;
 
   // Geometry constants
   final double borderWidth;
@@ -36,8 +112,40 @@ class PixelTheme extends ThemeExtension<PixelTheme> {
     this.shadowOffset = 3.0,
   });
 
-  /// Light theme (Mistral.ai aesthetic)
-  factory PixelTheme.light() {
+  /// Factory builder by scheme and dark/light mode
+  factory PixelTheme.build({
+    required PixelThemeScheme scheme,
+    bool isDark = false,
+  }) {
+    switch (scheme) {
+      case PixelThemeScheme.mistral:
+        return PixelTheme.mistral(isDark: isDark);
+      case PixelThemeScheme.spotify:
+        return PixelTheme.spotify(isDark: isDark);
+      case PixelThemeScheme.blue:
+        return PixelTheme.blue(isDark: isDark);
+    }
+  }
+
+  /// Mistral-inspired retro theme (Amber / Orange)
+  factory PixelTheme.mistral({bool isDark = false}) {
+    if (isDark) {
+      return const PixelTheme(
+        primary: Color(0xFFFA520F),
+        primaryHover: Color(0xFFFF8205),
+        amber: Color(0xFFFFAF00),
+        gold: Color(0xFFFFD800),
+        background: Color(0xFF121214),
+        surface: Color(0xFF1E1E22),
+        border: Color(0xFF3F3F46),
+        textPrimary: Color(0xFFFAFAFA),
+        textSecondary: Color(0xFFA1A1AA),
+        accentGreen: Color(0xFF22C55E),
+        accentRed: Color(0xFFEF4444),
+        borderWidth: 2.0,
+        shadowOffset: 3.0,
+      );
+    }
     return const PixelTheme(
       primary: Color(0xFFFA520F),
       primaryHover: Color(0xFFFF8205),
@@ -55,24 +163,83 @@ class PixelTheme extends ThemeExtension<PixelTheme> {
     );
   }
 
-  /// Dark theme
-  factory PixelTheme.dark() {
+  /// Spotify-inspired retro theme (Iconic Spotify Green #1DB954)
+  factory PixelTheme.spotify({bool isDark = false}) {
+    if (isDark) {
+      return const PixelTheme(
+        primary: Color(0xFF1DB954),      // Spotify Green
+        primaryHover: Color(0xFF1ED760), // Spotify Bright Green
+        amber: Color(0xFF10B981),        // Mint accent
+        gold: Color(0xFF34D399),         // Light Mint
+        background: Color(0xFF121212),   // Spotify Dark Slate
+        surface: Color(0xFF181818),      // Spotify Card Surface
+        border: Color(0xFF282828),       // Charcoal Border
+        textPrimary: Color(0xFFFFFFFF),
+        textSecondary: Color(0xFFB3B3B3),
+        accentGreen: Color(0xFF1ED760),
+        accentRed: Color(0xFFEF4444),
+        borderWidth: 2.0,
+        shadowOffset: 3.0,
+      );
+    }
     return const PixelTheme(
-      primary: Color(0xFFFA520F),
-      primaryHover: Color(0xFFFF8205),
-      amber: Color(0xFFFFAF00),
-      gold: Color(0xFFFFD800),
-      background: Color(0xFF121214),
-      surface: Color(0xFF1E1E22),
-      border: Color(0xFF3F3F46),
-      textPrimary: Color(0xFFFAFAFA),
-      textSecondary: Color(0xFFA1A1AA),
-      accentGreen: Color(0xFF22C55E),
+      primary: Color(0xFF1DB954),      // Spotify Green
+      primaryHover: Color(0xFF169C46), // Forest Green
+      amber: Color(0xFF059669),        // Emerald
+      gold: Color(0xFF10B981),         // Mint
+      background: Color(0xFFF2FAF4),   // Pale Mint Tint
+      surface: Color(0xFFFFFFFF),      // Pure White Card
+      border: Color(0xFF000000),       // Hard Black Border
+      textPrimary: Color(0xFF121212),
+      textSecondary: Color(0xFF535353),
+      accentGreen: Color(0xFF1DB954),
       accentRed: Color(0xFFEF4444),
       borderWidth: 2.0,
       shadowOffset: 3.0,
     );
   }
+
+  /// Retro Cyber Blue theme (#2563EB / #38BDF8)
+  factory PixelTheme.blue({bool isDark = false}) {
+    if (isDark) {
+      return const PixelTheme(
+        primary: Color(0xFF3B82F6),      // Bright Cyber Blue
+        primaryHover: Color(0xFF60A5FA), // Light Blue
+        amber: Color(0xFF38BDF8),        // Sky Cyan
+        gold: Color(0xFF93C5FD),         // Ice Blue
+        background: Color(0xFF0B1120),   // Deep Midnight Navy
+        surface: Color(0xFF151F32),      // Cyber Navy Card
+        border: Color(0xFF1E293B),       // Slate Border
+        textPrimary: Color(0xFFF8FAFC),
+        textSecondary: Color(0xFF94A3B8),
+        accentGreen: Color(0xFF10B981),
+        accentRed: Color(0xFFEF4444),
+        borderWidth: 2.0,
+        shadowOffset: 3.0,
+      );
+    }
+    return const PixelTheme(
+      primary: Color(0xFF2563EB),      // Royal Blue
+      primaryHover: Color(0xFF1D4ED8), // Deep Blue
+      amber: Color(0xFF0284C7),        // Ocean Blue
+      gold: Color(0xFF38BDF8),         // Sky Blue
+      background: Color(0xFFF0F7FF),   // Ice Cream Pale Blue
+      surface: Color(0xFFFFFFFF),      // Pure White Card
+      border: Color(0xFF000000),       // Hard Black Border
+      textPrimary: Color(0xFF0F172A),  // Navy Charcoal
+      textSecondary: Color(0xFF475569),
+      accentGreen: Color(0xFF10B981),
+      accentRed: Color(0xFFEF4444),
+      borderWidth: 2.0,
+      shadowOffset: 3.0,
+    );
+  }
+
+  /// Default light theme (Mistral)
+  factory PixelTheme.light() => PixelTheme.mistral(isDark: false);
+
+  /// Default dark theme (Mistral)
+  factory PixelTheme.dark() => PixelTheme.mistral(isDark: true);
 
   /// Box decoration for pixel card / button
   BoxDecoration boxDecoration({
@@ -156,20 +323,23 @@ class PixelTheme extends ThemeExtension<PixelTheme> {
 }
 
 /// Build Flutter ThemeData incorporating PixelTheme
-ThemeData buildPixelThemeData({bool isDark = false}) {
-  final pixelTheme = isDark ? PixelTheme.dark() : PixelTheme.light();
+ThemeData buildPixelThemeData({
+  PixelThemeScheme scheme = PixelThemeScheme.mistral,
+  bool isDark = false,
+}) {
+  final pixelTheme = PixelTheme.build(scheme: scheme, isDark: isDark);
 
   return ThemeData(
     useMaterial3: true,
     brightness: isDark ? Brightness.dark : Brightness.light,
     scaffoldBackgroundColor: pixelTheme.background,
-    fontFamily: 'monospace', // Default crisp monospace font fallback
+    fontFamily: 'monospace',
     colorScheme: ColorScheme(
       brightness: isDark ? Brightness.dark : Brightness.light,
       primary: pixelTheme.primary,
       onPrimary: Colors.white,
       secondary: pixelTheme.amber,
-      onSecondary: Colors.black,
+      onSecondary: isDark ? Colors.white : Colors.black,
       error: pixelTheme.accentRed,
       onError: Colors.white,
       surface: pixelTheme.surface,
