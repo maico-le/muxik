@@ -121,3 +121,15 @@ This log documents key technical choices made during the development of Musical.
     - Dio Interceptor (`DataMeterInterceptor`) automatically tallies API requests and response payloads.
     - Settings screen visualizes 7-day usage with an 8-bit stepped pixel bar chart.
 
+---
+
+### [DEC-008] Release Packaging, AGP 9 Proguard Compatibility & Documentation
+- **Date**: 2026-10-15
+- **Status**: Accepted
+- **Context**: Milestone 9 requires final UI polish, offline transitions, documentation (`README.md`, `TESTING.md`), and building a standalone Release APK (`flutter build apk --release`).
+- **Decision**:
+  - **AGP 9 Proguard Compatibility**: Android Gradle Plugin 9.1 removed legacy `proguard-android.txt`. In `flutter_inappwebview_android`, this was updated to `proguard-android-optimize.txt` to enable R8 optimization and resolve compilation failure.
+  - **Offline Navigation Transition**: Added top pixel banner `⚡ NGOẠI TUYẾN: PHÁT TỪ THƯ VIỆN & CACHE` on `ScaffoldWithPixelNavBar` when `NetworkPolicy.isOffline` is true, providing immediate user feedback when disconnecting from Wi-Fi and mobile networks.
+  - **Release APK**: Built `build/app/outputs/flutter-apk/app-release.apk` with Java 17 and Android SDK 34 (64.6MB stripped release artifact).
+  - **Documentation & Verification**: Generated complete `README.md` and manual verification checklist in `TESTING.md`.
+

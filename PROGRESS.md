@@ -11,4 +11,4 @@
 | **M6** | Search: debounced search, filters, pagination continuation, search history | ✅ Completed | 400ms debounce, search filter chips, SQLite search_history, 5-min cache TTL, pagination & auto-play integration |
 | **M7** | Playlist mutations + `pending_ops` offline sync + Random Shuffle Bag | ✅ Completed | Optimistic mutations, SQLite pending_ops queue with exponential backoff & tempId cascade, reorder 2-phase update, random shuffle bag |
 | **M8** | Data Saving: NetworkPolicy, bitrate selection, LRU disk cache, conditional prefetch, Data Meter | ✅ Completed | NetworkPolicy, Opus 48kbps on cellular (≤25MB/h), LockCachingAudioSource & LRU cache (0 bytes replay), DataMeter Dio interceptor, 7-day pixel chart in Settings |
-| **M9** | UI Polish, Pixel animations, accessibility, app icons, release APK build, docs | ⏳ Pending | |
+| **M9** | UI Polish, Pixel animations, accessibility, app icons, release APK build, docs | ✅ Completed | Offline transition banner, label capitalized, README.md & TESTING.md docs, release APK built (64.6MB) at build/app/outputs/flutter-apk/app-release.apk |

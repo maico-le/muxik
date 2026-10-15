@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../features/library/library_screen.dart';
 import '../../features/search/search_screen.dart';
@@ -8,6 +9,7 @@ import '../../features/playlist/playlist_detail_screen.dart';
 import '../../features/player/mini_player.dart';
 import '../theme/pixel_theme.dart';
 import '../widgets/pixel_icon.dart';
+import '../providers/network_providers.dart';
 
 final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>();
 final GlobalKey<NavigatorState> _shellNavigatorKey = GlobalKey<NavigatorState>();
@@ -59,7 +61,7 @@ final appRouter = GoRouter(
 );
 
 /// Retro pixel navigation shell
-class ScaffoldWithPixelNavBar extends StatelessWidget {
+class ScaffoldWithPixelNavBar extends ConsumerWidget {
   final Widget child;
 
   const ScaffoldWithPixelNavBar({super.key, required this.child});
@@ -87,15 +89,32 @@ class ScaffoldWithPixelNavBar extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = context.pixelTheme;
     final selectedIndex = _calculateSelectedIndex(context);
+    final networkPolicy = ref.watch(networkPolicyProvider);
 
     return Scaffold(
       body: child,
       bottomNavigationBar: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
+          if (networkPolicy.isOffline)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              color: Colors.black,
+              alignment: Alignment.center,
+              child: Text(
+                '⚡ NGOẠI TUYẾN: PHÁT TỪ THƯ VIỆN & CACHE',
+                style: TextStyle(
+                  fontFamily: 'monospace',
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                  color: theme.gold,
+                ),
+              ),
+            ),
           const MiniPlayer(),
           Container(
             decoration: BoxDecoration(
