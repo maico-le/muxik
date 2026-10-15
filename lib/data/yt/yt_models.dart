@@ -185,3 +185,67 @@ class ResolvedStream {
     return DateTime.now().isAfter(expiresAt.subtract(const Duration(minutes: 5)));
   }
 }
+
+/// Filter options for YouTube Music search
+enum SearchFilter {
+  all(null, 'TẤT CẢ'),
+  songs('EgWKAQIIAWoKEAkQBRAKEAMQBA%3D%3D', 'BÀI HÁT'),
+  videos('EgWKAQIQAWoKEAkQChAFEAMQBA%3D%3D', 'VIDEO'),
+  albums('EgWKAQIYAWoKEAkQChAFEAMQBA%3D%3D', 'ALBUM'),
+  artists('EgWKAQIgAWoKEAkQChAFEAMQBA%3D%3D', 'NGHỆ SĨ'),
+  playlists('EgWKAQIoAWoKEAkQChAFEAMQBA%3D%3D', 'PLAYLIST');
+
+  final String? param;
+  final String label;
+  const SearchFilter(this.param, this.label);
+}
+
+/// Types of items returned in search results
+enum SearchResultType { song, video, album, artist, playlist, unknown }
+
+/// Item in YouTube Music search results
+class YtSearchResultItem {
+  final String id; // videoId, browseId, or playlistId
+  final String title;
+  final SearchResultType type;
+  final List<String> artists;
+  final String? album;
+  final int durationMs;
+  final String thumbUrl;
+
+  const YtSearchResultItem({
+    required this.id,
+    required this.title,
+    required this.type,
+    this.artists = const [],
+    this.album,
+    this.durationMs = 0,
+    this.thumbUrl = '',
+  });
+
+  bool get isPlayable => type == SearchResultType.song || type == SearchResultType.video;
+
+  String get subtitle {
+    final parts = <String>[];
+    if (artists.isNotEmpty) parts.add(artists.join(', '));
+    if (album != null && album!.isNotEmpty) parts.add(album!);
+    if (durationMs > 0) {
+      final s = (durationMs / 1000).round();
+      final m = s ~/ 60;
+      final remS = s % 60;
+      parts.add('$m:${remS.toString().padLeft(2, '0')}');
+    }
+    return parts.join(' • ');
+  }
+
+  YtTrack toYtTrack() {
+    return YtTrack(
+      videoId: id,
+      title: title,
+      artists: artists,
+      album: album,
+      durationMs: durationMs,
+      thumbUrl: thumbUrl,
+    );
+  }
+}

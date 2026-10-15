@@ -61,5 +61,35 @@ void main() {
       expect(pageEmpty.items, isEmpty);
       expect(pageEmpty.hasMore, isFalse);
     });
+
+    test('parseSearchResults extracts song, artist, album and continuation token correctly', () {
+      final jsonStr = File('test/fixtures/search_results.json').readAsStringSync();
+      final page = InnerTubeParser.parseSearchResults(jsonStr);
+
+      expect(page.items.length, equals(3));
+      expect(page.continuation, equals('SEARCH_CONTINUATION_TOKEN_XYZ123'));
+      expect(page.hasMore, isTrue);
+
+      // Item 0: Song
+      final song = page.items[0];
+      expect(song.id, equals('dQw4w9WgXcQ'));
+      expect(song.title, equals('Never Gonna Give You Up'));
+      expect(song.isPlayable, isTrue);
+      expect(song.artists, contains('Rick Astley'));
+      expect(song.durationMs, equals(214000));
+      expect(song.thumbUrl, equals('https://example.com/rick_astley_thumb.jpg'));
+
+      // Item 1: Artist
+      final artist = page.items[1];
+      expect(artist.id, equals('UCuAXFkgsw1L7xaCfnd5JJOw'));
+      expect(artist.title, equals('Rick Astley'));
+      expect(artist.isPlayable, isFalse);
+
+      // Item 2: Album
+      final album = page.items[2];
+      expect(album.id, equals('MPREb_123456789'));
+      expect(album.title, equals('Pixel Chiptune Vol 1'));
+      expect(album.isPlayable, isFalse);
+    });
   });
 }

@@ -214,6 +214,37 @@ class YtClient {
     return page.items;
   }
 
+  /// Search YouTube Music with query, optional filter, and continuation
+  Future<PageResult<YtSearchResultItem>> search(
+    String query, {
+    SearchFilter filter = SearchFilter.all,
+    String? continuation,
+    CancelToken? cancelToken,
+  }) async {
+    const url = 'https://music.youtube.com/youtubei/v1/search?prettyPrint=false';
+    final body = <String, dynamic>{
+      'context': buildContext(),
+    };
+
+    if (continuation != null && continuation.isNotEmpty) {
+      body['continuation'] = continuation;
+    } else {
+      body['query'] = query;
+      if (filter.param != null && filter.param!.isNotEmpty) {
+        body['params'] = filter.param;
+      }
+    }
+
+    final response = await dio.post<Map<String, dynamic>>(
+      url,
+      data: body,
+      cancelToken: cancelToken,
+      options: Options(headers: baseHeaders),
+    );
+
+    return InnerTubeParser.parseSearchResults(response.data ?? {});
+  }
+
   /// Query `player` endpoint to obtain stream formats
   Future<List<AudioStreamFormat>> getAudioStreams(
     String videoId, {

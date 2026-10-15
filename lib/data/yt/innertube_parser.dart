@@ -243,6 +243,112 @@ class InnerTubeParser {
     );
   }
 
+  /// Parse search results into a paginated list of YtSearchResultItem
+  static PageResult<YtSearchResultItem> parseSearchResults(dynamic json) {
+    if (json is String) {
+      json = jsonDecode(json);
+    }
+    if (json is! Map<String, dynamic>) {
+      return const PageResult(items: []);
+    }
+
+    final rawItems = findAll(json, (node) {
+      if (node is Map<String, dynamic>) {
+        return node.containsKey('musicResponsiveListItemRenderer');
+      }
+      return false;
+    });
+
+    final results = <YtSearchResultItem>[];
+
+    for (final raw in rawItems) {
+      final item = raw['musicResponsiveListItemRenderer'] as Map<String, dynamic>;
+      final flexCols = item['flexColumns'] as List<dynamic>? ?? [];
+      final thumb = extractThumbnail(item['thumbnail']);
+
+      // 1. Title from flexCol 0
+      final title = _extractTitleFromFlex(flexCols) ?? 'Unknown Title';
+
+      // 2. VideoId / BrowseId & Navigation
+      String? videoId = _extractVideoIdFromFlex(flexCols);
+      if (videoId == null) {
+        final overlay = item['overlay']?['musicItemThumbnailOverlayRenderer'];
+        videoId = overlay?['content']?['musicPlayButtonRenderer']?['playNavigationEndpoint']?['watchEndpoint']?['videoId'] as String?;
+      }
+
+      final navEndpoint = item['navigationEndpoint'] as Map<String, dynamic>?;
+      videoId ??= navEndpoint?['watchEndpoint']?['videoId'] as String?;
+      final browseId = navEndpoint?['browseEndpoint']?['browseId'] as String?;
+
+      // 3. Subtitle / artists / album / duration
+      final artists = _extractArtistsFromFlex(flexCols);
+      final album = _extractAlbumFromFlex(flexCols);
+      final durationMs = _extractDurationFromFlex(flexCols);
+
+      // Determine result type
+      SearchResultType type;
+      String id;
+
+      if (videoId != null && videoId.isNotEmpty) {
+        id = videoId;
+        final subText = flexCols.length > 1
+            ? (extractRunsText(flexCols[1]['musicResponsiveListItemFlexColumnRenderer']?['text']) ?? '')
+            : '';
+        if (subText.toLowerCase().contains('video')) {
+          type = SearchResultType.video;
+        } else {
+          type = SearchResultType.song;
+        }
+      } else if (browseId != null && browseId.isNotEmpty) {
+        id = browseId;
+        if (browseId.startsWith('UC') || browseId.startsWith('FEmusic_library_privately_owned_artist')) {
+          type = SearchResultType.artist;
+        } else if (browseId.startsWith('VL') || browseId.startsWith('PL')) {
+          type = SearchResultType.playlist;
+        } else if (browseId.startsWith('MPREb_')) {
+          type = SearchResultType.album;
+        } else {
+          type = SearchResultType.unknown;
+        }
+      } else {
+        final browseIdFromFlex = _extractBrowseIdFromFlex(flexCols);
+        if (browseIdFromFlex != null) {
+          id = browseIdFromFlex;
+          if (browseIdFromFlex.startsWith('UC')) {
+            type = SearchResultType.artist;
+          } else if (browseIdFromFlex.startsWith('VL') || browseIdFromFlex.startsWith('PL')) {
+            type = SearchResultType.playlist;
+          } else if (browseIdFromFlex.startsWith('MPREb_')) {
+            type = SearchResultType.album;
+          } else {
+            type = SearchResultType.unknown;
+          }
+        } else {
+          continue; // Skip if no valid identifier
+        }
+      }
+
+      results.add(
+        YtSearchResultItem(
+          id: id,
+          title: title,
+          type: type,
+          artists: artists,
+          album: album,
+          durationMs: durationMs,
+          thumbUrl: thumb,
+        ),
+      );
+    }
+
+    final continuation = extractContinuationToken(json);
+    return PageResult(
+      items: results,
+      continuation: continuation,
+      totalCount: results.length,
+    );
+  }
+
   // --- Helpers for flex columns ---
 
   static String? _extractVideoIdFromFlex(List<dynamic> flexCols) {
@@ -253,6 +359,21 @@ class InnerTubeParser {
         for (final run in runs) {
           final nav = run['navigationEndpoint'];
           final id = nav?['watchEndpoint']?['videoId'];
+          if (id is String && id.isNotEmpty) return id;
+        }
+      }
+    }
+    return null;
+  }
+
+  static String? _extractBrowseIdFromFlex(List<dynamic> flexCols) {
+    for (final col in flexCols) {
+      final renderer = col['musicResponsiveListItemFlexColumnRenderer'];
+      final runs = renderer?['text']?['runs'] as List<dynamic>?;
+      if (runs != null) {
+        for (final run in runs) {
+          final nav = run['navigationEndpoint'];
+          final id = nav?['browseEndpoint']?['browseId'];
           if (id is String && id.isNotEmpty) return id;
         }
       }
@@ -299,10 +420,24 @@ class InnerTubeParser {
 
   static int _extractDurationFromFlex(List<dynamic> flexCols) {
     for (final col in flexCols) {
-      final text = extractRunsText(
-          col['musicResponsiveListItemFlexColumnRenderer']?['text']);
-      if (text != null && RegExp(r'^\d+:\d{2}(:\d{2})?$').hasMatch(text.trim())) {
-        final parts = text.trim().split(':').map(int.parse).toList();
+      final renderer = col['musicResponsiveListItemFlexColumnRenderer'];
+      final runs = renderer?['text']?['runs'] as List<dynamic>?;
+      if (runs != null) {
+        for (final run in runs) {
+          final text = run['text']?.toString().trim();
+          if (text != null && RegExp(r'^\d+:\d{2}(:\d{2})?$').hasMatch(text)) {
+            final parts = text.split(':').map(int.parse).toList();
+            if (parts.length == 2) {
+              return (parts[0] * 60 + parts[1]) * 1000;
+            } else if (parts.length == 3) {
+              return (parts[0] * 3600 + parts[1] * 60 + parts[2]) * 1000;
+            }
+          }
+        }
+      }
+      final simpleText = renderer?['text']?['simpleText']?.toString().trim();
+      if (simpleText != null && RegExp(r'^\d+:\d{2}(:\d{2})?$').hasMatch(simpleText)) {
+        final parts = simpleText.split(':').map(int.parse).toList();
         if (parts.length == 2) {
           return (parts[0] * 60 + parts[1]) * 1000;
         } else if (parts.length == 3) {
