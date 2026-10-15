@@ -5,8 +5,12 @@ import '../../core/theme/pixel_theme.dart';
 import '../../core/widgets/pixel_widgets.dart';
 import '../../core/widgets/pixel_image.dart';
 import '../../core/widgets/pixel_icon.dart';
+import '../../core/widgets/pixel_dialog.dart';
 import '../../core/providers/library_providers.dart';
 import '../../core/providers/auth_providers.dart';
+import '../../core/providers/sync_providers.dart';
+import '../../core/providers/player_providers.dart';
+import '../../data/yt/yt_models.dart';
 
 class LibraryScreen extends ConsumerStatefulWidget {
   const LibraryScreen({super.key});
@@ -57,16 +61,268 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
     }
   }
 
+  void _showCreatePlaylistDialog() {
+    final titleController = TextEditingController();
+    String privacy = 'PRIVATE';
+
+    PixelDialog.show(
+      context: context,
+      title: 'TẠO PLAYLIST MỚI',
+      content: StatefulBuilder(
+        builder: (ctx, setDialogState) {
+          final theme = ctx.pixelTheme;
+          return Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                'Tên danh sách phát:',
+                style: TextStyle(
+                  fontFamily: 'monospace',
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12,
+                  color: theme.primary,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Container(
+                decoration: theme.boxDecoration(fillColor: theme.surface),
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                child: TextField(
+                  controller: titleController,
+                  autofocus: true,
+                  style: TextStyle(
+                    fontFamily: 'monospace',
+                    color: theme.textPrimary,
+                    fontSize: 13,
+                  ),
+                  decoration: const InputDecoration(
+                    border: InputBorder.none,
+                    hintText: 'Nhập tên...',
+                    isDense: true,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'Quyền riêng tư:',
+                style: TextStyle(
+                  fontFamily: 'monospace',
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12,
+                  color: theme.primary,
+                ),
+              ),
+              const SizedBox(height: 6),
+              DropdownButton<String>(
+                value: privacy,
+                isExpanded: true,
+                dropdownColor: theme.surface,
+                style: TextStyle(
+                  fontFamily: 'monospace',
+                  fontSize: 12,
+                  color: theme.textPrimary,
+                ),
+                items: const [
+                  DropdownMenuItem(value: 'PRIVATE', child: Text('Riêng tư (Private)')),
+                  DropdownMenuItem(value: 'UNLISTED', child: Text('Không công khai (Unlisted)')),
+                  DropdownMenuItem(value: 'PUBLIC', child: Text('Công khai (Public)')),
+                ],
+                onChanged: (val) {
+                  if (val != null) {
+                    setDialogState(() => privacy = val);
+                  }
+                },
+              ),
+            ],
+          );
+        },
+      ),
+      actions: [
+        PixelButton(
+          isSmall: true,
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('HUỶ'),
+        ),
+        const SizedBox(width: 8),
+        PixelButton(
+          isSmall: true,
+          isPrimary: true,
+          onPressed: () async {
+            final title = titleController.text.trim();
+            if (title.isNotEmpty) {
+              Navigator.of(context).pop();
+              final syncRepo = ref.read(syncRepoProvider);
+              await syncRepo.createPlaylist(title, privacyStatus: privacy);
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Đã tạo playlist "$title"', style: const TextStyle(fontFamily: 'monospace')),
+                  ),
+                );
+              }
+            }
+          },
+          child: const Text('TẠO'),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _shuffleRandomTracks() async {
+    final syncRepo = ref.read(syncRepoProvider);
+    final randomTracks = await syncRepo.getRandomTracks(count: 50);
+
+    if (randomTracks.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Chưa có bài hát nào được đồng bộ trong thư viện!', style: TextStyle(fontFamily: 'monospace')),
+          ),
+        );
+      }
+      return;
+    }
+
+    // Play in player
+    final playerService = ref.read(playerServiceProvider);
+    await playerService.playQueue(randomTracks, startIndex: 0);
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Đang phát ngẫu nhiên ${randomTracks.length} bài hát!', style: const TextStyle(fontFamily: 'monospace')),
+          action: SnackBarAction(
+            label: 'LƯU PLAYLIST',
+            textColor: Colors.amber,
+            onPressed: () => _promptSaveRandomQueueAsPlaylist(randomTracks),
+          ),
+          duration: const Duration(seconds: 6),
+        ),
+      );
+    }
+  }
+
+  void _promptSaveRandomQueueAsPlaylist(List<YtTrack> tracks) {
+    final now = DateTime.now();
+    final titleController = TextEditingController(text: 'Trộn ngẫu nhiên ${now.day}/${now.month}');
+    PixelDialog.show(
+      context: context,
+      title: 'LƯU THÀNH PLAYLIST MỚI',
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const Text(
+            'Đặt tên cho danh sách phát ngẫu nhiên:',
+            style: TextStyle(fontFamily: 'monospace', fontSize: 12),
+          ),
+          const SizedBox(height: 8),
+          Container(
+            decoration: context.pixelTheme.boxDecoration(fillColor: context.pixelTheme.surface),
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            child: TextField(
+              controller: titleController,
+              autofocus: true,
+              style: TextStyle(
+                fontFamily: 'monospace',
+                color: context.pixelTheme.textPrimary,
+                fontSize: 13,
+              ),
+              decoration: const InputDecoration(border: InputBorder.none, isDense: true),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            '${tracks.length} bài hát sẽ được thêm vào danh sách phát.',
+            style: TextStyle(
+              fontFamily: 'monospace',
+              fontSize: 11,
+              color: context.pixelTheme.textSecondary,
+            ),
+          ),
+        ],
+      ),
+      actions: [
+        PixelButton(
+          isSmall: true,
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('HUỶ'),
+        ),
+        const SizedBox(width: 8),
+        PixelButton(
+          isSmall: true,
+          isPrimary: true,
+          onPressed: () async {
+            final title = titleController.text.trim();
+            if (title.isNotEmpty) {
+              Navigator.of(context).pop();
+              final syncRepo = ref.read(syncRepoProvider);
+              await syncRepo.saveRandomQueueAsPlaylist(title, tracks);
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Đã lưu playlist "$title"!', style: const TextStyle(fontFamily: 'monospace')),
+                  ),
+                );
+              }
+            }
+          },
+          child: const Text('LƯU'),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = context.pixelTheme;
     final playlistsAsync = ref.watch(localPlaylistsStreamProvider);
     final activeAccountAsync = ref.watch(activeAccountProvider);
+    final pendingOpsCountAsync = ref.watch(pendingOpsCountStreamProvider);
+    final pendingOps = pendingOpsCountAsync.valueOrNull ?? 0;
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('LIBRARY'),
         actions: [
+          if (pendingOps > 0)
+            Center(
+              child: GestureDetector(
+                onTap: () async {
+                  await ref.read(syncRepoProvider).processPendingOps();
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Đã kích hoạt đồng bộ thay đổi!', style: TextStyle(fontFamily: 'monospace')),
+                      ),
+                    );
+                  }
+                },
+                child: Container(
+                  margin: const EdgeInsets.only(right: 8),
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: theme.accentRed,
+                    border: Border.all(color: theme.border, width: 1),
+                  ),
+                  child: Text(
+                    'SYNC: $pendingOps',
+                    style: const TextStyle(
+                      fontFamily: 'monospace',
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          IconButton(
+            icon: const PixelIcon(PixelIconType.add, size: 20),
+            tooltip: 'Tạo playlist mới',
+            onPressed: _showCreatePlaylistDialog,
+          ),
           IconButton(
             icon: _isSyncing
                 ? const SizedBox(
@@ -88,6 +344,41 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
         child: CustomScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
           slivers: [
+            // Quick Actions: Trộn ngẫu nhiên (Spec 6.1) & Tạo Playlist
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(12, 12, 12, 4),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: PixelButton(
+                        isPrimary: true,
+                        onPressed: _shuffleRandomTracks,
+                        child: const Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            PixelIcon(PixelIconType.shuffle, size: 16, color: Colors.white),
+                            SizedBox(width: 8),
+                            Text('TRỘN NGẪU NHIÊN', style: TextStyle(fontSize: 11)),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    PixelButton(
+                      onPressed: _showCreatePlaylistDialog,
+                      child: const Row(
+                        children: [
+                          PixelIcon(PixelIconType.add, size: 14),
+                          SizedBox(width: 6),
+                          Text('TẠO', style: TextStyle(fontSize: 11)),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
             // Account / Auth Banner if guest
             SliverToBoxAdapter(
               child: activeAccountAsync.when(

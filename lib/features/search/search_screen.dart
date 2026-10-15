@@ -9,6 +9,7 @@ import '../../core/widgets/pixel_image.dart';
 import '../../core/providers/search_providers.dart';
 import '../../core/providers/player_providers.dart';
 import '../../data/yt/yt_models.dart';
+import '../playlist/add_to_playlist_dialog.dart';
 
 class SearchScreen extends ConsumerStatefulWidget {
   const SearchScreen({super.key});
@@ -504,6 +505,32 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                   ),
                 ),
               ),
+              if (item.isPlayable) ...[
+                const SizedBox(width: 4),
+                PopupMenuButton<String>(
+                  icon: const Icon(Icons.more_vert, size: 16),
+                  padding: EdgeInsets.zero,
+                  color: theme.surface,
+                  onSelected: (val) {
+                    if (val == 'add') {
+                      showAddToPlaylistDialog(context, ref, item.toYtTrack());
+                    }
+                  },
+                  itemBuilder: (ctx) => [
+                    PopupMenuItem(
+                      value: 'add',
+                      child: Text(
+                        'Thêm vào playlist',
+                        style: TextStyle(
+                          fontFamily: 'monospace',
+                          color: theme.textPrimary,
+                          fontSize: 11,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ],
           ),
         ),

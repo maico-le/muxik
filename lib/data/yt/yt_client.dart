@@ -294,6 +294,78 @@ class YtClient {
     return formats;
   }
 
+  // --- Playlist Mutations (Spec 6.4) ---
+
+  /// Create a new playlist on YouTube Music
+  Future<String> createPlaylist(
+    String title, {
+    String? description,
+    String privacyStatus = 'PRIVATE',
+    List<String>? videoIds,
+  }) async {
+    const url = 'https://music.youtube.com/youtubei/v1/playlist/create?prettyPrint=false';
+    final body = {
+      'context': buildContext(),
+      'title': title,
+      if (description != null && description.isNotEmpty) 'description': description,
+      'privacyStatus': privacyStatus,
+      if (videoIds != null && videoIds.isNotEmpty) 'videoIds': videoIds,
+    };
+
+    final response = await dio.post<Map<String, dynamic>>(
+      url,
+      data: body,
+      options: Options(headers: baseHeaders),
+    );
+
+    final data = response.data ?? {};
+    final playlistId = data['playlistId'] as String?;
+    if (playlistId == null || playlistId.isEmpty) {
+      throw Exception('Failed to create playlist: No playlistId returned');
+    }
+
+    return playlistId;
+  }
+
+  /// Delete a playlist from YouTube Music
+  Future<bool> deletePlaylist(String playlistId) async {
+    const url = 'https://music.youtube.com/youtubei/v1/playlist/delete?prettyPrint=false';
+    final body = {
+      'context': buildContext(),
+      'playlistId': playlistId,
+    };
+
+    final response = await dio.post<Map<String, dynamic>>(
+      url,
+      data: body,
+      options: Options(headers: baseHeaders),
+    );
+
+    final status = response.statusCode;
+    return status != null && status >= 200 && status < 300;
+  }
+
+  /// Perform actions on a playlist (add track, remove track, reorder, rename)
+  Future<Map<String, dynamic>> editPlaylist(
+    String playlistId,
+    List<Map<String, dynamic>> actions,
+  ) async {
+    const url = 'https://music.youtube.com/youtubei/v1/browse/edit_playlist?prettyPrint=false';
+    final body = {
+      'context': buildContext(),
+      'playlistId': playlistId,
+      'actions': actions,
+    };
+
+    final response = await dio.post<Map<String, dynamic>>(
+      url,
+      data: body,
+      options: Options(headers: baseHeaders),
+    );
+
+    return response.data ?? {};
+  }
+
   // --- Helpers for parsing InnerTube renderers ---
 
   static String? _extractRunsText(dynamic node) {

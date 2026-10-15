@@ -77,3 +77,21 @@ This log documents key technical choices made during the development of Musical.
   - HTTP Range verification: Requested byte range `0-1023` returned `HTTP 206 Partial Content` (or `200 OK`) confirming direct audio stream playability.
   - Cellular bitrate optimization verified: Selects Opus itags 249/250 (~48-64kbps) on cellular, and itag 251 (~160kbps) on Wi-Fi.
 
+---
+
+### [DEC-006] Playlist Mutations & Offline Pending Operations Queue
+- **Date**: 2026-10-15
+- **Status**: Accepted
+- **Context**: Users need to create, rename, delete playlists, add/remove tracks, and reorder playlist tracks seamlessly even when offline or experiencing unstable network conditions.
+- **Decision**:
+  - **Optimistic UI Updates**: All actions modify the local Drift SQLite database immediately (`playlists`, `playlist_tracks`) and render in the UI without network wait.
+  - **`pending_ops` Queue**:
+    - Each offline/online mutation is logged into the `pending_ops` SQLite table with an operation type (`create_playlist`, `delete_playlist`, `rename_playlist`, `add_track`, `remove_track`, `reorder_tracks`), JSON payload, retry count, and exponential backoff timestamp.
+    - Temporary IDs (`temp_<timestamp>_<uuid>`) are assigned to newly created playlists while offline.
+    - When `processPendingOps` successfully sends `create_playlist` to YouTube InnerTube API, it receives the real YouTube playlist ID (e.g. `VLPL...`) and cascades updates to:
+      1. Local `playlists.id`
+      2. Local `playlist_tracks.playlist_id`
+      3. All subsequent queued operations in `pending_ops` referencing the old `tempId`.
+  - **Two-Phase Reorder**: Reordering playlist tracks within `playlist_tracks` uses a two-phase transaction (first setting negative temporary indices `-(i + 1)` and then zero-based final indices `i`) to avoid violating the compound primary key constraint `(playlist_id, position)` in SQLite.
+  - **Random Shuffle Bag**: Generates an unbiased non-repeating queue of 50 tracks from the user's entire library or a specific playlist, with an option to instantly persist the resulting queue as a new playlist.
+
