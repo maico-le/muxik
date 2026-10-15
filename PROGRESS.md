@@ -7,8 +7,8 @@
 | **M2** | Authentication: WebView login + Dev cookie sheet + account switcher | ✅ Completed | WebView Google auth, DevCookieBottomSheet, AccountSwitcher, AuthStorage, rollback on error, unit tests passed |
 | **M3** | Library & Playlist view with continuation pagination + parsers + fixture tests | ✅ Completed | InnerTubeParser, LibraryRepo, offline caching to SQLite, pagination continuation, full fixture tests passed |
 | **M4** | Player: `just_audio`, queue management, shuffle bag, loop modes (OFF/ONE/ALL/ONE×N), mini player | ✅ Completed | QueueController, PlayerService, MiniPlayer, PlayerScreen, PixelVisualizer, QueueBottomSheet, 100% test coverage |
-| **M5** | Background playback: `audio_service`, notification, lock screen, audio focus | 🔄 In Progress | Ready to implement |
-| **M6** | Search: debounced search, filters, pagination continuation, search history | ⏳ Pending | |
+| **M5** | Background playback: `audio_service`, notification, lock screen, audio focus | ✅ Completed | Android foreground service, AudioSession interruptions (focus duck/pause), lock screen controls, battery optimization advisory |
+| **M6** | Search: debounced search, filters, pagination continuation, search history | 🔄 In Progress | Ready to implement |
 | **M7** | Playlist mutations + `pending_ops` offline sync + Random Shuffle Bag | ⏳ Pending | |
 | **M8** | Data Saving: NetworkPolicy, bitrate selection, LRU disk cache, conditional prefetch, Data Meter | ⏳ Pending | |
 | **M9** | UI Polish, Pixel animations, accessibility, app icons, release APK build, docs | ⏳ Pending | |

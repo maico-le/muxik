@@ -159,11 +159,9 @@ class PlayerService extends ChangeNotifier {
     }
   }
 
-  /// Play or Pause toggle
-  Future<void> togglePlayPause() async {
-    if (_audioPlayer.playing) {
-      await _audioPlayer.pause();
-    } else {
+  /// Play
+  Future<void> play() async {
+    if (!_audioPlayer.playing) {
       if (currentTrack != null) {
         if (_audioPlayer.processingState == ProcessingState.idle) {
           await _resolveAndPlay(startPosition: _position);
@@ -171,6 +169,22 @@ class PlayerService extends ChangeNotifier {
           await _audioPlayer.play();
         }
       }
+    }
+  }
+
+  /// Pause
+  Future<void> pause() async {
+    if (_audioPlayer.playing) {
+      await _audioPlayer.pause();
+    }
+  }
+
+  /// Play or Pause toggle
+  Future<void> togglePlayPause() async {
+    if (_audioPlayer.playing) {
+      await pause();
+    } else {
+      await play();
     }
   }
 

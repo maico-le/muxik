@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/theme/pixel_theme.dart';
 import 'core/routing/app_router.dart';
+import 'core/providers/player_providers.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -17,6 +18,9 @@ class MusicalApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Keep background audio handler active across app lifecycle
+    ref.watch(audioHandlerProvider);
+
     return MaterialApp.router(
       title: 'Musical - Retro Pixel Audio',
       debugShowCheckedModeBanner: false,

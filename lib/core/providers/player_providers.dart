@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../audio/queue_controller.dart';
 import '../../audio/player_service.dart';
+import '../../audio/audio_handler.dart';
 import '../../data/yt/stream_resolver.dart';
 import 'auth_providers.dart';
 
@@ -29,4 +30,15 @@ final playerServiceProvider = ChangeNotifierProvider<PlayerService>((ref) {
 
   ref.onDispose(() => player.dispose());
   return player;
+});
+
+/// MusicalAudioHandler Provider for AudioService foreground management
+final audioHandlerProvider = Provider<MusicalAudioHandler>((ref) {
+  final playerService = ref.watch(playerServiceProvider);
+  final queueController = ref.watch(queueControllerProvider);
+
+  return MusicalAudioHandler(
+    playerService: playerService,
+    queueController: queueController,
+  );
 });

@@ -143,9 +143,67 @@ class SettingsScreen extends ConsumerWidget {
                   ),
                 ),
                 const SizedBox(height: 8),
-                const Text(
-                  'Mode: Save Data (Opus ~48kbps on Cellular)',
-                  style: TextStyle(fontFamily: 'monospace', fontSize: 12),
+                Text(
+                  'Extreme cellular data saving (<25MB/h, Opus 48kbps, local LRU cache).',
+                  style: TextStyle(
+                    fontFamily: 'monospace',
+                    fontSize: 12,
+                    color: theme.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          // Background Playback & Battery Optimization Card (Spec 9)
+          PixelCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'BACKGROUND PLAYBACK',
+                  style: TextStyle(
+                    fontFamily: 'monospace',
+                    fontWeight: FontWeight.bold,
+                    color: theme.primary,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Music keeps playing when your screen is locked or while using other apps.',
+                  style: TextStyle(
+                    fontFamily: 'monospace',
+                    fontSize: 12,
+                    color: theme.textSecondary,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  color: theme.amber.withValues(alpha: 0.15),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'BATTERY OPTIMIZATION NOTICE',
+                        style: TextStyle(
+                          fontFamily: 'monospace',
+                          fontWeight: FontWeight.bold,
+                          fontSize: 11,
+                          color: theme.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Some manufacturers (Xiaomi, Samsung, Oppo, Huawei) aggressively terminate background services. To ensure non-stop background audio, disable battery optimization for Musical in your Android system settings.',
+                        style: TextStyle(
+                          fontFamily: 'monospace',
+                          fontSize: 10,
+                          color: theme.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
