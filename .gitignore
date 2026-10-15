@@ -1,0 +1,39 @@
+# Git ignore for Musical (Flutter + Dart)
+
+# Reference repositories
+/reference/
+
+# Flutter / Dart
+.dart_tool/
+.packages
+build/
+.flutter-plugins
+.flutter-plugins-dependencies
+pubspec.lock.bak
+
+# Android
+android/.gradle
+android/captures/
+android/gradlew
+android/gradlew.bat
+android/local.properties
+android/GeneratedPluginRegistrant.java
+android/app/debug/
+android/app/profile/
+android/app/release/
+android/app/src/main/res/raw/
+android/.idea/
+android/*.iml
+
+# Secrets & Authentication
+*.cookie
+*.cookies
+*cookie*.txt
+*.secret
+*.key
+.env
+.env.*
+
+# OS
+.DS_Store
+Thumbs.db

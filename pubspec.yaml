@@ -1,0 +1,61 @@
+name: musical
+description: "A retro pixel art YouTube Music client for Android with data saver and background playback."
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.2.0 <4.0.0'
+  flutter: ">=3.16.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  
+  # State management & routing
+  flutter_riverpod: ^2.5.1
+  go_router: ^14.1.4
+
+  # Networking & serialization
+  dio: ^5.4.3+1
+  crypto: ^3.0.3
+
+  # Webview & secure storage
+  flutter_inappwebview: ^6.0.0
+  flutter_secure_storage: ^9.0.0
+
+  # Audio playback & background services
+  just_audio: ^0.9.36
+  audio_service: ^0.18.12
+  audio_session: ^0.1.18
+
+  # Local Database
+  drift: ^2.18.0
+  sqlite3_flutter_libs: ^0.5.21
+  path_provider: ^2.1.3
+  path: ^1.9.0
+
+  # Connectivity & network policy
+  connectivity_plus: ^6.0.3
+
+  # Image caching
+  cached_network_image: ^3.3.1
+
+  # Stream resolution fallback
+  youtube_explode_dart: ^2.2.1
+
+  # UI utilities
+  flutter_svg: ^2.0.10+1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.2
+  drift_dev: ^2.18.0
+  build_runner: ^2.4.9
+  mocktail: ^1.0.3
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/fonts/
+    - assets/icons/
