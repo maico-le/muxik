@@ -669,7 +669,7 @@ class SettingsScreen extends ConsumerWidget {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'Some manufacturers (Xiaomi, Samsung, Oppo, Huawei) aggressively terminate background services. To ensure non-stop background audio, disable battery optimization for Musical in your Android system settings.',
+                        'Some manufacturers (Xiaomi, Samsung, Oppo, Huawei) aggressively terminate background services. To ensure non-stop background audio, disable battery optimization for Muxik in your Android system settings.',
                         style: TextStyle(
                           fontFamily: 'monospace',
                           fontSize: 10,

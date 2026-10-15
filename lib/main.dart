@@ -22,7 +22,7 @@ class MusicalApp extends ConsumerWidget {
     ref.watch(audioHandlerProvider);
 
     return MaterialApp.router(
-      title: 'Musical - Retro Pixel Audio',
+      title: 'Muxik - Retro Pixel Audio',
       debugShowCheckedModeBanner: false,
       theme: buildPixelThemeData(isDark: false),
       darkTheme: buildPixelThemeData(isDark: true),
