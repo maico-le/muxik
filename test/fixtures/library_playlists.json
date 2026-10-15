@@ -1,0 +1,96 @@
+{
+  "contents": {
+    "singleColumnBrowseResultsRenderer": {
+      "tabs": [
+        {
+          "tabRenderer": {
+            "content": {
+              "sectionListRenderer": {
+                "contents": [
+                  {
+                    "gridRenderer": {
+                      "items": [
+                        {
+                          "musicTwoRowItemRenderer": {
+                            "thumbnailRenderer": {
+                              "musicThumbnailRenderer": {
+                                "thumbnail": {
+                                  "thumbnails": [
+                                    {
+                                      "url": "https://lh3.googleusercontent.com/sample_playlist_thumb_1.jpg",
+                                      "width": 226,
+                                      "height": 226
+                                    }
+                                  ]
+                                }
+                              }
+                            },
+                            "title": {
+                              "runs": [
+                                {
+                                  "text": "Pixel Chiptune Hits"
+                                }
+                              ]
+                            },
+                            "subtitle": {
+                              "runs": [
+                                {
+                                  "text": "Playlist • 42 tracks"
+                                }
+                              ]
+                            },
+                            "navigationEndpoint": {
+                              "browseEndpoint": {
+                                "browseId": "VLPLretro_pixel_chiptune_01"
+                              }
+                            }
+                          }
+                        },
+                        {
+                          "musicTwoRowItemRenderer": {
+                            "thumbnailRenderer": {
+                              "musicThumbnailRenderer": {
+                                "thumbnail": {
+                                  "thumbnails": [
+                                    {
+                                      "url": "https://lh3.googleusercontent.com/sample_playlist_thumb_2.jpg",
+                                      "width": 226,
+                                      "height": 226
+                                    }
+                                  ]
+                                }
+                              }
+                            },
+                            "title": {
+                              "runs": [
+                                {
+                                  "text": "Lo-Fi 8-Bit Beats"
+                                }
+                              ]
+                            },
+                            "subtitle": {
+                              "runs": [
+                                {
+                                  "text": "Playlist • 15 tracks"
+                                }
+                              ]
+                            },
+                            "navigationEndpoint": {
+                              "browseEndpoint": {
+                                "browseId": "VLPLlofi_8bit_beats_02"
+                              }
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,58 @@
+)]}'
+{
+  "actions": [
+    {
+      "getMultiPageMenuAction": {
+        "menu": {
+          "multiPageMenuRenderer": {
+            "sections": [
+              {
+                "accountSectionListRenderer": {
+                  "contents": [
+                    {
+                      "accountItemRenderer": {
+                        "accountName": {
+                          "runs": [
+                            {
+                              "text": "Pixel User"
+                            }
+                          ]
+                        },
+                        "accountEmail": {
+                          "runs": [
+                            {
+                              "text": "pixel.user@example.com"
+                            }
+                          ]
+                        },
+                        "accountPhoto": {
+                          "thumbnails": [
+                            {
+                              "url": "https://lh3.googleusercontent.com/a/default-user=s64-c",
+                              "width": 64,
+                              "height": 64
+                            }
+                          ]
+                        },
+                        "isSelected": true,
+                        "serviceEndpoint": {
+                          "selectActiveIdentityEndpoint": {
+                            "supportedTokens": [
+                              {
+                                "pageId": "100023456789012345678"
+                              }
+                            ]
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      }
+    }
+  ]
+}

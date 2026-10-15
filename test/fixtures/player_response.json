@@ -1,0 +1,50 @@
+{
+  "playabilityStatus": {
+    "status": "OK"
+  },
+  "streamingData": {
+    "expiresInSeconds": "21540",
+    "adaptiveFormats": [
+      {
+        "itag": 249,
+        "mimeType": "audio/webm; codecs=\"opus\"",
+        "bitrate": 48000,
+        "averageBitrate": 46210,
+        "contentLength": "1203492",
+        "audioSampleRate": "48000",
+        "audioChannels": 2,
+        "url": "https://rr4---sn-mock-audio.googlevideo.com/videoplayback?itag=249&mime=audio%2Fwebm"
+      },
+      {
+        "itag": 250,
+        "mimeType": "audio/webm; codecs=\"opus\"",
+        "bitrate": 64000,
+        "averageBitrate": 61400,
+        "contentLength": "1603492",
+        "audioSampleRate": "48000",
+        "audioChannels": 2,
+        "url": "https://rr4---sn-mock-audio.googlevideo.com/videoplayback?itag=250&mime=audio%2Fwebm"
+      },
+      {
+        "itag": 251,
+        "mimeType": "audio/webm; codecs=\"opus\"",
+        "bitrate": 130000,
+        "averageBitrate": 128400,
+        "contentLength": "3403492",
+        "audioSampleRate": "48000",
+        "audioChannels": 2,
+        "url": "https://rr4---sn-mock-audio.googlevideo.com/videoplayback?itag=251&mime=audio%2Fwebm"
+      },
+      {
+        "itag": 140,
+        "mimeType": "audio/mp4; codecs=\"mp4a.40.2\"",
+        "bitrate": 128000,
+        "averageBitrate": 127900,
+        "contentLength": "3391000",
+        "audioSampleRate": "44100",
+        "audioChannels": 2,
+        "url": "https://rr4---sn-mock-audio.googlevideo.com/videoplayback?itag=140&mime=audio%2Fmp4"
+      }
+    ]
+  }
+}

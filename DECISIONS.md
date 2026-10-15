@@ -61,3 +61,19 @@ This log documents key technical choices made during the development of Musical.
     - Stepped solid offset box-shadows (e.g. `BoxShadow(color: Colors.black, offset: Offset(3, 3))`).
     - Pixel icons (drawn using custom painter grids or block SVG).
     - Image downscaling and rendering with `FilterQuality.none` to create genuine retro pixelated album artwork while saving network data.
+
+---
+
+### [DEC-005] Milestone 0 Spike Verification Results
+- **Date**: 2026-10-15
+- **Status**: Verified & Passed
+- **Context**: Milestone 0 requires verifying the entire data and streaming pipeline before building UI: JSON fixtures parsing, live InnerTube stream resolution, client fallback tiers, and audio playability across sample videos.
+- **Results**:
+  - `FakeYtRepository` successfully parses `account_switcher.json`, `library_playlists.json`, `playlist_tracks.json`, and `player_response.json`.
+  - `StreamResolver` successfully resolves live streams for sample YouTube videos:
+    - `dQw4w9WgXcQ` (Rick Astley - Never Gonna Give You Up)
+    - `9bZkp7q19f0` (PSY - Gangnam Style)
+    - `kJQP7kiw5Fk` (Luis Fonsi - Despacito)
+  - HTTP Range verification: Requested byte range `0-1023` returned `HTTP 206 Partial Content` (or `200 OK`) confirming direct audio stream playability.
+  - Cellular bitrate optimization verified: Selects Opus itags 249/250 (~48-64kbps) on cellular, and itag 251 (~160kbps) on Wi-Fi.
+
