@@ -5,6 +5,7 @@ import '../../features/search/search_screen.dart';
 import '../../features/settings/settings_screen.dart';
 import '../../features/auth/login_screen.dart';
 import '../../features/playlist/playlist_detail_screen.dart';
+import '../../features/player/mini_player.dart';
 import '../theme/pixel_theme.dart';
 import '../widgets/pixel_icon.dart';
 
@@ -92,17 +93,21 @@ class ScaffoldWithPixelNavBar extends StatelessWidget {
 
     return Scaffold(
       body: child,
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          color: theme.surface,
-          border: Border(
-            top: BorderSide(color: theme.border, width: theme.borderWidth),
-          ),
-        ),
-        child: SafeArea(
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
+      bottomNavigationBar: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const MiniPlayer(),
+          Container(
+            decoration: BoxDecoration(
+              color: theme.surface,
+              border: Border(
+                top: BorderSide(color: theme.border, width: theme.borderWidth),
+              ),
+            ),
+            child: SafeArea(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
               _buildNavItem(
                 context,
                 index: 0,
@@ -128,7 +133,9 @@ class ScaffoldWithPixelNavBar extends StatelessWidget {
           ),
         ),
       ),
-    );
+    ],
+  ),
+);
   }
 
   Widget _buildNavItem(

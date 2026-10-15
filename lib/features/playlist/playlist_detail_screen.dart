@@ -5,6 +5,8 @@ import '../../core/widgets/pixel_widgets.dart';
 import '../../core/widgets/pixel_image.dart';
 import '../../core/widgets/pixel_icon.dart';
 import '../../core/providers/library_providers.dart';
+import '../../core/providers/player_providers.dart';
+import '../../data/yt/yt_models.dart';
 
 class PlaylistDetailScreen extends ConsumerStatefulWidget {
   final String playlistId;
@@ -146,7 +148,25 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
                                 PixelButton(
                                   isSmall: true,
                                   isPrimary: true,
-                                  onPressed: () {},
+                                  onPressed: tracksAsync.valueOrNull == null ||
+                                          tracksAsync.valueOrNull!.isEmpty
+                                      ? null
+                                      : () {
+                                          final ytTracks = tracksAsync.valueOrNull!
+                                              .map((t) => YtTrack(
+                                                    videoId: t.videoId,
+                                                    title: t.title,
+                                                    artists: t.artists.split(', '),
+                                                    album: t.album,
+                                                    durationMs: t.durationMs,
+                                                    thumbUrl: t.thumbUrl ?? '',
+                                                    isPlayable: t.isPlayable,
+                                                  ))
+                                              .toList();
+                                          ref
+                                              .read(playerServiceProvider)
+                                              .playQueue(ytTracks, startIndex: 0);
+                                        },
                                   child: const Row(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
@@ -300,7 +320,20 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
                             ),
                           ),
                           onTap: () {
-                            // Queue and player trigger in M4
+                            final ytTracks = tracks
+                                .map((t) => YtTrack(
+                                      videoId: t.videoId,
+                                      title: t.title,
+                                      artists: t.artists.split(', '),
+                                      album: t.album,
+                                      durationMs: t.durationMs,
+                                      thumbUrl: t.thumbUrl ?? '',
+                                      isPlayable: t.isPlayable,
+                                    ))
+                                .toList();
+                            ref
+                                .read(playerServiceProvider)
+                                .playQueue(ytTracks, startIndex: index);
                           },
                         ),
                       );
