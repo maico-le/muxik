@@ -94,13 +94,22 @@ class MiniPlayer extends ConsumerWidget {
                   const SizedBox(width: 8),
                   // Controls
                   IconButton(
-                    icon: PixelIcon(
-                      playerService.isPlaying
-                          ? PixelIconType.pause
-                          : PixelIconType.play,
-                      size: 20,
-                      color: theme.primary,
-                    ),
+                    icon: playerService.isLoading
+                        ? SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: theme.primary,
+                            ),
+                          )
+                        : PixelIcon(
+                            playerService.isPlaying
+                                ? PixelIconType.pause
+                                : PixelIconType.play,
+                            size: 20,
+                            color: theme.primary,
+                          ),
                     onPressed: () => playerService.togglePlayPause(),
                   ),
                   IconButton(

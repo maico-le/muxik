@@ -8,7 +8,6 @@ import 'auth_providers.dart';
 /// NetworkPolicy Provider
 final networkPolicyProvider = ChangeNotifierProvider<NetworkPolicy>((ref) {
   final policy = NetworkPolicy();
-  ref.onDispose(() => policy.dispose());
   return policy;
 });
 
@@ -26,7 +25,6 @@ final dataMeterProvider = ChangeNotifierProvider<DataMeter>((ref) {
     ytClient.dio.interceptors.add(DataMeterInterceptor(dataMeter: meter));
   }
 
-  ref.onDispose(() => meter.dispose());
   return meter;
 });
 
@@ -34,7 +32,6 @@ final dataMeterProvider = ChangeNotifierProvider<DataMeter>((ref) {
 final audioCacheManagerProvider = ChangeNotifierProvider<AudioCacheManager>((ref) {
   final db = ref.watch(appDatabaseProvider);
   final manager = AudioCacheManager(db: db);
-  ref.onDispose(() => manager.dispose());
   return manager;
 });
 

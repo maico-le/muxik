@@ -55,6 +55,7 @@ void main() {
       when(() => mockAudioPlayer.positionStream).thenAnswer((_) => const Stream.empty());
       when(() => mockAudioPlayer.durationStream).thenAnswer((_) => const Stream.empty());
       when(() => mockAudioPlayer.bufferedPositionStream).thenAnswer((_) => const Stream.empty());
+      when(() => mockAudioPlayer.playbackEventStream).thenAnswer((_) => const Stream.empty());
       when(() => mockAudioPlayer.playing).thenReturn(false);
       when(() => mockAudioPlayer.processingState).thenReturn(ProcessingState.ready);
       when(() => mockAudioPlayer.play()).thenAnswer((_) async {});

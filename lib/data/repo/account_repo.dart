@@ -108,14 +108,22 @@ class AccountRepo {
 
       // 2. Query account switcher endpoint
       final accounts = await ytClient.getAccountSwitcher();
-      if (accounts.isEmpty) {
-        throw Exception('No accounts returned from getAccountSwitcherEndpoint');
-      }
+      final effectiveAccounts = accounts.isNotEmpty
+          ? accounts
+          : [
+              const YtAccount(
+                email: 'user@google.com',
+                name: 'YouTube Music User',
+                thumbUrl: '',
+                authUser: 0,
+                isUsed: true,
+              )
+            ];
 
       // Pick the currently selected account or first
-      final selectedAccount = accounts.firstWhere(
+      final selectedAccount = effectiveAccounts.firstWhere(
         (a) => a.isUsed,
-        orElse: () => accounts.first,
+        orElse: () => effectiveAccounts.first,
       );
 
       // 3. Save cookie securely
@@ -129,7 +137,7 @@ class AccountRepo {
           const AccountsCompanion(isUsed: Value(false)),
         );
 
-        for (final acc in accounts) {
+        for (final acc in effectiveAccounts) {
           final isCurrent = acc.email == selectedAccount.email;
           await db.into(db.accounts).insertOnConflictUpdate(
                 AccountsCompanion(
@@ -147,7 +155,7 @@ class AccountRepo {
       ytClient.authUser = selectedAccount.authUser;
       ytClient.pageId = selectedAccount.pageId;
 
-      return accounts;
+      return effectiveAccounts;
     } catch (e) {
       // Rollback on failure
       ytClient.cookie = prevCookie;

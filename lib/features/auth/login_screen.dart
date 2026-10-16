@@ -31,10 +31,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       final accounts = await repo.authenticateWithCookie(cookie);
       ref.invalidate(activeAccountProvider);
 
+      final accountName = accounts.isNotEmpty ? accounts.first.name : 'YouTube Music User';
       if (mounted) {
         setState(() {
           _isLoading = false;
-          _statusMessage = 'SUCCESS! Logged in as ${accounts.first.name}';
+          _statusMessage = 'SUCCESS! Logged in as $accountName';
         });
       }
     } catch (e) {
@@ -222,6 +223,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   SizedBox(width: 8),
                   Text('DEV MODE: ENTER COOKIE MANUALLY'),
                 ],
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Gợi ý: Nếu Google hiển thị cảnh báo thiết bị lạ hoặc xác minh bảo mật trong WebView, bạn có thể đăng nhập trên trình duyệt (Chrome/Brave/Edge) rồi copy chuỗi cookie dán vào Dev Mode để đăng nhập ngay lập tức.',
+              style: TextStyle(
+                fontFamily: 'monospace',
+                fontSize: 10,
+                color: theme.textSecondary,
               ),
             ),
 

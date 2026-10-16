@@ -105,32 +105,13 @@ class YtClient {
     return List.generate(16, (_) => chars[rand.nextInt(chars.length)]).join();
   }
 
-  /// Get account switcher data to verify cookie and retrieve available brand accounts
-  Future<List<YtAccount>> getAccountSwitcher() async {
-    const url = 'https://music.youtube.com/getAccountSwitcherEndpoint';
-    final response = await dio.get<String>(
-      url,
-      options: Options(
-        headers: baseHeaders,
-        responseType: ResponseType.plain,
-      ),
-    );
-
-    var raw = response.data ?? '';
-    if (raw.startsWith(")]}'\n")) {
-      raw = raw.substring(5);
-    } else if (raw.startsWith(")]}'")) {
-      raw = raw.substring(4);
-    }
-
-    final json = jsonDecode(raw) as Map<String, dynamic>;
+  List<YtAccount> _parseAccountItems(dynamic node) {
     final accounts = <YtAccount>[];
 
-    // Helper to find all account items recursively
-    void findAccountItems(dynamic node) {
-      if (node is Map<String, dynamic>) {
-        if (node.containsKey('accountItemRenderer')) {
-          final item = node['accountItemRenderer'] as Map<String, dynamic>;
+    void findAccountItems(dynamic current) {
+      if (current is Map<String, dynamic>) {
+        if (current.containsKey('accountItemRenderer')) {
+          final item = current['accountItemRenderer'] as Map<String, dynamic>;
           final name = _extractRunsText(item['accountName']) ?? 'Unknown';
           final email = _extractRunsText(item['accountEmail']) ?? '';
           final thumb = _extractThumbnail(item['accountPhoto']);
@@ -149,19 +130,72 @@ class YtClient {
             ),
           );
         } else {
-          for (final val in node.values) {
+          for (final val in current.values) {
             findAccountItems(val);
           }
         }
-      } else if (node is List) {
-        for (final elem in node) {
+      } else if (current is List) {
+        for (final elem in current) {
           findAccountItems(elem);
         }
       }
     }
 
-    findAccountItems(json);
+    findAccountItems(node);
     return accounts;
+  }
+
+  /// Get account switcher data to verify cookie and retrieve available brand accounts
+  Future<List<YtAccount>> getAccountSwitcher() async {
+    // 1. Try legacy getAccountSwitcherEndpoint
+    try {
+      const url = 'https://music.youtube.com/getAccountSwitcherEndpoint';
+      final response = await dio.get<String>(
+        url,
+        options: Options(
+          headers: baseHeaders,
+          responseType: ResponseType.plain,
+        ),
+      );
+
+      var raw = response.data ?? '';
+      if (raw.startsWith(")]}'\n")) {
+        raw = raw.substring(5);
+      } else if (raw.startsWith(")]}'")) {
+        raw = raw.substring(4);
+      }
+
+      if (raw.trim().startsWith('{')) {
+        final json = jsonDecode(raw) as Map<String, dynamic>;
+        final accounts = _parseAccountItems(json);
+        if (accounts.isNotEmpty) {
+          return accounts;
+        }
+      }
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 401) rethrow;
+    } catch (_) {}
+
+    // 2. Try modern account_menu endpoint
+    try {
+      const menuUrl = 'https://music.youtube.com/youtubei/v1/account/account_menu';
+      final response = await dio.post<Map<String, dynamic>>(
+        menuUrl,
+        data: {'context': buildContext()},
+        options: Options(headers: baseHeaders),
+      );
+
+      if (response.data != null) {
+        final accounts = _parseAccountItems(response.data!);
+        if (accounts.isNotEmpty) {
+          return accounts;
+        }
+      }
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 401) rethrow;
+    } catch (_) {}
+
+    return [];
   }
 
   /// Browse Library Playlists (`FEmusic_liked_playlists`)

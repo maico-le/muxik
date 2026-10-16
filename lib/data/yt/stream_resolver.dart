@@ -1,7 +1,26 @@
 import 'dart:async';
+import 'package:http/http.dart' as http;
 import 'package:youtube_explode_dart/youtube_explode_dart.dart' as yt_explode;
 import 'yt_client.dart';
 import 'yt_models.dart';
+
+/// Authenticated & modern HTTP client for YoutubeExplode preventing bot-blocks
+class AuthenticatedYoutubeHttpClient extends yt_explode.YoutubeHttpClient {
+  final String? cookie;
+  AuthenticatedYoutubeHttpClient([this.cookie, http.Client? client]) : super(client);
+
+  @override
+  Map<String, String> get headers => {
+    'user-agent':
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36',
+    'cookie': cookie != null && cookie!.isNotEmpty
+        ? '$cookie; SOCS=CAI; PREF=hl=en; GPS=1; CONSENT=YES+cb'
+        : 'CONSENT=YES+cb; SOCS=CAI; PREF=hl=en; GPS=1',
+    'accept':
+        'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
+    'accept-language': 'en-US,en;q=0.5',
+  };
+}
 
 /// Resolves playable audio streams with quality policies and fallbacks
 class StreamResolver {
@@ -12,6 +31,9 @@ class StreamResolver {
 
   /// Clear in-memory stream cache
   void clearCache() => _cache.clear();
+
+  /// Remove a specific video from cache (e.g. if stream expired or playback failed)
+  void remove(String videoId) => _cache.remove(videoId);
 
   /// Resolve a stream URL for [videoId].
   /// [preferLowBitrate]: if true, picks lowest playable audio (Opus/AAC ~48kbps) to conserve data on cellular networks.
@@ -44,7 +66,8 @@ class StreamResolver {
         );
 
         if (formats.isNotEmpty) {
-          final selected = _selectFormat(formats, preferLowBitrate: preferLowBitrate);
+          final withUrl = formats.where((f) => f.url != null && f.url!.isNotEmpty).toList();
+          final selected = _selectFormat(withUrl, preferLowBitrate: preferLowBitrate);
           if (selected != null && selected.url != null && selected.url!.isNotEmpty) {
             final expiresAt = _parseExpiry(selected.url!) ??
                 DateTime.now().add(const Duration(hours: 4));
@@ -63,6 +86,10 @@ class StreamResolver {
             _cache[videoId] = resolved;
             return resolved;
           }
+
+          // InnerTube returned formats but none had plain URLs (requires signature deciphering).
+          // Break immediately to decipherer fallback without wasting seconds on other clients.
+          break;
         }
       } catch (_) {
         // Fallback to next client
@@ -100,45 +127,87 @@ class StreamResolver {
     }
   }
 
-  /// Fallback resolver using youtube_explode_dart
+  /// Fallback resolver using youtube_explode_dart with multi-tier client fallbacks
   Future<ResolvedStream> _resolveWithYoutubeExplode(
     String videoId, {
     required bool preferLowBitrate,
   }) async {
-    final yt = yt_explode.YoutubeExplode();
-    try {
-      final manifest = await yt.videos.streamsClient.getManifest(videoId);
-      final audioStreams = manifest.audioOnly.toList();
+    dynamic lastError;
+    final ytClientsPriority = [
+      // Primary: Mobile & TV clients without watch page (bypasses bot-block & rate-limiting, resolves in ~3s)
+      [
+        yt_explode.YoutubeApiClient.ios,
+        yt_explode.YoutubeApiClient.tv,
+        yt_explode.YoutubeApiClient.androidSdkless,
+      ],
+      // Fallback: Android & Safari
+      [
+        yt_explode.YoutubeApiClient.android,
+        yt_explode.YoutubeApiClient.safari,
+      ],
+      // Last resort: Clean web client
+      null,
+    ];
 
-      if (audioStreams.isEmpty) {
-        throw Exception('No audio-only streams found for $videoId');
+    for (final clients in ytClientsPriority) {
+      final client = (ytClient.cookie != null && ytClient.cookie!.isNotEmpty)
+          ? AuthenticatedYoutubeHttpClient(ytClient.cookie)
+          : null;
+      final yt = yt_explode.YoutubeExplode(httpClient: client);
+      try {
+        final yt_explode.StreamManifest manifest;
+        if (clients != null) {
+          manifest = await yt.videos.streamsClient.getManifest(
+            videoId,
+            ytClients: clients,
+            requireWatchPage: false,
+          );
+        } else {
+          manifest = await yt.videos.streamsClient.getManifest(
+            videoId,
+            requireWatchPage: false,
+          );
+        }
+        final audioStreams = manifest.audioOnly.toList();
+
+        if (audioStreams.isEmpty) {
+          throw Exception('No audio-only streams found for $videoId');
+        }
+
+        final playable = audioStreams
+            .where((s) => s.tag != 599 && s.tag != 600 && s.bitrate.bitsPerSecond >= 40000)
+            .toList();
+        final pool = playable.isNotEmpty ? playable : audioStreams;
+
+        if (preferLowBitrate) {
+          pool.sort((a, b) => a.bitrate.bitsPerSecond.compareTo(b.bitrate.bitsPerSecond));
+        } else {
+          pool.sort((a, b) => b.bitrate.bitsPerSecond.compareTo(a.bitrate.bitsPerSecond));
+        }
+
+        final chosen = pool.first;
+        final streamUrl = chosen.url.toString();
+        final expiresAt = _parseExpiry(streamUrl) ?? DateTime.now().add(const Duration(hours: 4));
+
+        final resolved = ResolvedStream(
+          videoId: videoId,
+          url: streamUrl,
+          mimeType: chosen.container.name,
+          itag: chosen.tag,
+          bitrate: chosen.bitrate.bitsPerSecond,
+          contentLength: chosen.size.totalBytes,
+          expiresAt: expiresAt,
+        );
+
+        _cache[videoId] = resolved;
+        return resolved;
+      } catch (e) {
+        lastError = e;
+      } finally {
+        yt.close();
       }
-
-      if (preferLowBitrate) {
-        audioStreams.sort((a, b) => a.bitrate.bitsPerSecond.compareTo(b.bitrate.bitsPerSecond));
-      } else {
-        audioStreams.sort((a, b) => b.bitrate.bitsPerSecond.compareTo(a.bitrate.bitsPerSecond));
-      }
-
-      final chosen = audioStreams.first;
-      final streamUrl = chosen.url.toString();
-      final expiresAt = _parseExpiry(streamUrl) ?? DateTime.now().add(const Duration(hours: 4));
-
-      final resolved = ResolvedStream(
-        videoId: videoId,
-        url: streamUrl,
-        mimeType: chosen.container.name,
-        itag: chosen.tag,
-        bitrate: chosen.bitrate.bitsPerSecond,
-        contentLength: chosen.size.totalBytes,
-        expiresAt: expiresAt,
-      );
-
-      _cache[videoId] = resolved;
-      return resolved;
-    } finally {
-      yt.close();
     }
+    throw lastError ?? Exception('Failed to resolve stream for $videoId');
   }
 
   /// Parse the URL's `expire` query parameter

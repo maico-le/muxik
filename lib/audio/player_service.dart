@@ -39,6 +39,7 @@ class PlayerService extends ChangeNotifier {
   StreamSubscription? _positionSub;
   StreamSubscription? _durationSub;
   StreamSubscription? _bufferedSub;
+  StreamSubscription? _playbackEventSub;
   Timer? _cellularPauseTimer;
 
   PlayerService({
@@ -49,7 +50,11 @@ class PlayerService extends ChangeNotifier {
     AudioCacheManager? cacheManager,
     NetworkPolicy? networkPolicy,
     DataMeter? dataMeter,
-  })  : _audioPlayer = audioPlayer ?? AudioPlayer(),
+  })  : _audioPlayer = audioPlayer ??
+            AudioPlayer(
+              userAgent:
+                  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36',
+            ),
         _streamResolver = streamResolver,
         _queueController = queueController,
         _db = db,
@@ -74,11 +79,18 @@ class PlayerService extends ChangeNotifier {
 
   void _initListeners() {
     _playerStateSub = _audioPlayer.playerStateStream.listen((state) {
+      if (_status == PlayerStatus.error) {
+        return;
+      }
       if (state.processingState == ProcessingState.loading ||
           state.processingState == ProcessingState.buffering) {
         _status = PlayerStatus.loading;
       } else if (state.processingState == ProcessingState.completed) {
-        _onTrackCompleted();
+        if (_duration > Duration.zero) {
+          _onTrackCompleted();
+        }
+      } else if (state.processingState == ProcessingState.idle) {
+        _status = PlayerStatus.idle;
       } else if (state.playing) {
         _status = PlayerStatus.playing;
         _cellularPauseTimer?.cancel();
@@ -103,6 +115,19 @@ class PlayerService extends ChangeNotifier {
       _bufferedPosition = buf;
       notifyListeners();
     });
+
+    _playbackEventSub = _audioPlayer.playbackEventStream.listen(
+      (event) {},
+      onError: (Object e, StackTrace st) {
+        _status = PlayerStatus.error;
+        _errorMessage = 'Playback error: $e';
+        final track = currentTrack;
+        if (track != null) {
+          _streamResolver.remove(track.videoId);
+        }
+        notifyListeners();
+      },
+    );
   }
 
   void _handleCellularPauseTimeout() {
@@ -162,27 +187,25 @@ class PlayerService extends ChangeNotifier {
           initialPosition: startPosition,
         );
       } else {
-        // Stream and cache to disk
-        final cachePath = await _cacheManager?.getFilePath(track.videoId, resolved.itag);
-        if (cachePath != null) {
-          final cacheFile = File(cachePath);
-          // ignore: experimental_member_use
-          final source = LockCachingAudioSource(
-            Uri.parse(resolved.url),
-            cacheFile: cacheFile,
-          );
-          await _audioPlayer.setAudioSource(source, initialPosition: startPosition);
+        // Stream directly with standard User-Agent header
+        final audioSource = AudioSource.uri(
+          Uri.parse(resolved.url),
+          headers: const {
+            'User-Agent':
+                'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36',
+          },
+        );
+        await _audioPlayer.setAudioSource(audioSource, initialPosition: startPosition);
 
+        try {
           if (resolved.contentLength != null && resolved.contentLength! > 0) {
             _dataMeter?.recordUsage(kind: 'audio', bytes: resolved.contentLength!);
           }
+        } catch (_) {}
 
-          _checkAndRegisterCache(track.videoId, resolved.itag, cacheFile);
-        } else {
-          await _audioPlayer.setUrl(resolved.url, initialPosition: startPosition);
-          if (resolved.contentLength != null && resolved.contentLength! > 0) {
-            _dataMeter?.recordUsage(kind: 'audio', bytes: resolved.contentLength!);
-          }
+        // Cache file asynchronously in the background only when permitted by network policy
+        if (_networkPolicy == null || _networkPolicy.shouldPrefetch) {
+          _cacheStreamInBackground(resolved, track.videoId);
         }
       }
 
@@ -191,11 +214,13 @@ class PlayerService extends ChangeNotifier {
       _cellularPauseTimer?.cancel();
 
       // Update lastPlayedAt in database
-      await (_db.update(_db.tracks)..where((t) => t.videoId.equals(track.videoId))).write(
-        TracksCompanion(
-          lastPlayedAt: Value(DateTime.now()),
-        ),
-      );
+      try {
+        await (_db.update(_db.tracks)..where((t) => t.videoId.equals(track.videoId))).write(
+          TracksCompanion(
+            lastPlayedAt: Value(DateTime.now()),
+          ),
+        );
+      } catch (_) {}
 
       _persistQueueState();
 
@@ -204,22 +229,59 @@ class PlayerService extends ChangeNotifier {
     } catch (e) {
       _status = PlayerStatus.error;
       _errorMessage = 'Failed to play track: $e';
+      await _audioPlayer.stop();
+      _streamResolver.remove(track.videoId);
       notifyListeners();
-
-      // Per spec 5.8: Mark track unplayable and advance automatically
-      _onTrackCompleted();
     }
   }
 
-  void _checkAndRegisterCache(String videoId, int itag, File cacheFile) {
-    Future.delayed(const Duration(seconds: 5), () async {
-      if (await cacheFile.exists()) {
-        final len = await cacheFile.length();
-        if (len > 0) {
-          await _cacheManager?.registerCacheEntry(videoId, itag, cacheFile.path, len);
+  void _cacheStreamInBackground(ResolvedStream resolved, String videoId) {
+    unawaited(() async {
+      try {
+        // Delay caching by 10s so initial ExoPlayer buffer has full network priority
+        await Future.delayed(const Duration(seconds: 10));
+        if (_status != PlayerStatus.playing || currentTrack?.videoId != videoId) {
+          return;
         }
+
+        final cachePath = await _cacheManager?.getFilePath(videoId, resolved.itag);
+        if (cachePath == null) return;
+        final targetFile = File(cachePath);
+        if (await targetFile.exists() && (await targetFile.length()) > 0) return;
+
+        final tempFile = File('$cachePath.tmp');
+        final client = HttpClient();
+        try {
+          final request = await client.getUrl(Uri.parse(resolved.url));
+          request.headers.set(
+            'User-Agent',
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36',
+          );
+          final response = await request.close();
+          if (response.statusCode == 200 || response.statusCode == 206) {
+            final sink = tempFile.openWrite();
+            await response.pipe(sink);
+            if (await tempFile.exists()) {
+              final len = await tempFile.length();
+              if (len > 0) {
+                if (await targetFile.exists()) await targetFile.delete();
+                await tempFile.rename(targetFile.path);
+                await _cacheManager?.registerCacheEntry(videoId, resolved.itag, targetFile.path, len);
+              }
+            }
+          }
+        } finally {
+          client.close(force: true);
+          if (await tempFile.exists()) {
+            try {
+              await tempFile.delete();
+            } catch (_) {}
+          }
+        }
+      } catch (_) {
+        // Caching is best-effort and non-blocking
       }
-    });
+    }());
   }
 
   void _triggerConditionalPrefetch() {
@@ -254,7 +316,8 @@ class PlayerService extends ChangeNotifier {
   Future<void> play() async {
     if (!_audioPlayer.playing) {
       if (currentTrack != null) {
-        if (_audioPlayer.processingState == ProcessingState.idle) {
+        if (_audioPlayer.processingState == ProcessingState.idle ||
+            _status == PlayerStatus.error) {
           await _resolveAndPlay(startPosition: _position);
         } else {
           await _audioPlayer.play();
@@ -330,6 +393,7 @@ class PlayerService extends ChangeNotifier {
     _positionSub?.cancel();
     _durationSub?.cancel();
     _bufferedSub?.cancel();
+    _playbackEventSub?.cancel();
     _queueController.removeListener(_onQueueChanged);
     _audioPlayer.dispose();
     super.dispose();

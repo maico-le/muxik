@@ -137,9 +137,28 @@ class QueueBottomSheet extends ConsumerWidget {
                       trailing: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          if (isCurrent)
-                            const PixelIcon(PixelIconType.play, size: 14)
-                          else
+                          IconButton(
+                            icon: PixelIcon(
+                              (isCurrent && playerService.isPlaying)
+                                  ? PixelIconType.pause
+                                  : PixelIconType.play,
+                              size: 14,
+                              color: isCurrent
+                                  ? theme.primary
+                                  : theme.textSecondary,
+                            ),
+                            tooltip: (isCurrent && playerService.isPlaying)
+                                ? 'Tạm dừng'
+                                : 'Phát bài này',
+                            onPressed: () {
+                              if (isCurrent) {
+                                playerService.togglePlayPause();
+                              } else {
+                                playerService.playTrackAtIndex(index);
+                              }
+                            },
+                          ),
+                          if (!isCurrent)
                             IconButton(
                               icon: const Icon(Icons.close, size: 16),
                               onPressed: () => queueController.removeAt(index),
@@ -147,7 +166,12 @@ class QueueBottomSheet extends ConsumerWidget {
                         ],
                       ),
                       onTap: () {
-                        playerService.playTrackAtIndex(index);
+                        if (!isCurrent) {
+                          playerService.playTrackAtIndex(index);
+                        } else if (!playerService.isPlaying) {
+                          playerService.play();
+                        }
+                        Navigator.of(context).pop();
                       },
                     ),
                   );

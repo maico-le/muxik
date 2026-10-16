@@ -9,6 +9,7 @@ import '../../core/providers/library_providers.dart';
 import '../../core/providers/player_providers.dart';
 import '../../core/providers/sync_providers.dart';
 import '../../data/yt/yt_models.dart';
+import '../player/player_screen.dart';
 
 class PlaylistDetailScreen extends ConsumerStatefulWidget {
   final String playlistId;
@@ -70,6 +71,7 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
   }
 
   String _formatDuration(int ms) {
+    if (ms <= 0) return '--:--';
     final seconds = ms ~/ 1000;
     final m = seconds ~/ 60;
     final s = seconds % 60;
@@ -449,8 +451,28 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
                   delegate: SliverChildBuilderDelegate(
                     (context, index) {
                       final track = tracks[index];
+                      final playerService = ref.watch(playerServiceProvider);
+                      final isCurrentTrack =
+                          playerService.currentTrack?.videoId == track.videoId;
+                      final isPlaying = isCurrentTrack && playerService.isPlaying;
+
+                      final ytTracks = tracks
+                          .map((t) => YtTrack(
+                                videoId: t.videoId,
+                                title: t.title,
+                                artists: t.artists.split(', '),
+                                album: t.album,
+                                durationMs: t.durationMs,
+                                thumbUrl: t.thumbUrl ?? '',
+                                isPlayable: t.isPlayable,
+                              ))
+                          .toList();
+
                       return Container(
                         decoration: BoxDecoration(
+                          color: isCurrentTrack
+                              ? theme.primary.withValues(alpha: 0.1)
+                              : Colors.transparent,
                           border: Border(
                             bottom: BorderSide(
                               color: theme.border.withValues(alpha: 0.1),
@@ -492,7 +514,9 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
                               fontFamily: 'monospace',
                               fontWeight: FontWeight.bold,
                               fontSize: 13,
-                              color: theme.textPrimary,
+                              color: isCurrentTrack
+                                  ? theme.primary
+                                  : theme.textPrimary,
                             ),
                           ),
                           subtitle: Text(
@@ -508,6 +532,26 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
                           trailing: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
+                              IconButton(
+                                icon: PixelIcon(
+                                  isPlaying
+                                      ? PixelIconType.pause
+                                      : PixelIconType.play,
+                                  size: 16,
+                                  color: isCurrentTrack
+                                      ? theme.primary
+                                      : theme.textPrimary,
+                                ),
+                                tooltip: isPlaying ? 'Tạm dừng' : 'Phát bài này',
+                                onPressed: () {
+                                  if (isCurrentTrack) {
+                                    playerService.togglePlayPause();
+                                  } else {
+                                    playerService.playQueue(ytTracks,
+                                        startIndex: index);
+                                  }
+                                },
+                              ),
                               Text(
                                 _formatDuration(track.durationMs),
                                 style: TextStyle(
@@ -545,20 +589,14 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
                             ],
                           ),
                           onTap: () {
-                            final ytTracks = tracks
-                                .map((t) => YtTrack(
-                                      videoId: t.videoId,
-                                      title: t.title,
-                                      artists: t.artists.split(', '),
-                                      album: t.album,
-                                      durationMs: t.durationMs,
-                                      thumbUrl: t.thumbUrl ?? '',
-                                      isPlayable: t.isPlayable,
-                                    ))
-                                .toList();
-                            ref
-                                .read(playerServiceProvider)
-                                .playQueue(ytTracks, startIndex: index);
+                            if (!isCurrentTrack ||
+                                playerService.status == PlayerStatus.error) {
+                              playerService.playQueue(ytTracks,
+                                  startIndex: index);
+                            } else if (!playerService.isPlaying) {
+                              playerService.play();
+                            }
+                            PlayerScreen.show(context);
                           },
                         ),
                       );

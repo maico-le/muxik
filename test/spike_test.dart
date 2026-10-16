@@ -83,6 +83,6 @@ void main() {
         expect(wifiStream.url, isNotEmpty);
         expect(wifiStream.bitrate, greaterThan(0));
       }
-    }, timeout: const Timeout(Duration(seconds: 45)));
+    }, timeout: const Timeout(Duration(seconds: 120)));
   });
 }

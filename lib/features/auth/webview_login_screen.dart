@@ -21,53 +21,72 @@ class _WebViewLoginScreenState extends State<WebViewLoginScreen> {
   bool _isLoading = true;
   String? _statusText;
 
-  static const String loginUrl =
-      'https://accounts.google.com/ServiceLogin?ltmpl=music&service=youtube&uilel=3&passive=true&continue=https%3A%2F%2Fwww.youtube.com%2Fsignin%3Faction_handle_signin%3Dtrue%26app%3Ddesktop%26hl%3Den%26next%3Dhttps%253A%252F%252Fmusic.youtube.com%252F%26feature%3D__FEATURE__&hl=en';
+  static const String youtubeMusicUrl = 'https://music.youtube.com/';
+  static const String directGoogleLoginUrl =
+      'https://accounts.google.com/ServiceLogin?service=youtube&passive=true&continue=https%3A%2F%2Fmusic.youtube.com%2F&hl=vi';
+
+  // Standard clean mobile Chrome user-agent without embedded WebView (; wv) flags
+  static const String mobileChromeUserAgent =
+      'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36';
 
   @override
   void initState() {
     super.initState();
     if (!kIsWeb) {
       _cookieManager = CookieManager.instance();
-      _clearWebViewCookies();
     }
   }
 
-  Future<void> _clearWebViewCookies() async {
-    try {
-      await _cookieManager?.deleteAllCookies();
-    } catch (_) {}
-  }
+  Future<void> _checkAndExtractCookies([WebUri? currentUri]) async {
+    final uri = currentUri ?? await _webViewController?.getUrl();
+    if (uri == null) return;
+    final urlStr = uri.toString();
 
-  Future<void> _checkAndExtractCookies(WebUri? currentUri) async {
-    if (currentUri == null) return;
-    final urlStr = currentUri.toString();
+    // Check if redirected to YouTube Music or YouTube main page
+    final isMusicOrYt = urlStr.contains('music.youtube.com') ||
+        urlStr.contains('youtube.com/signin') ||
+        urlStr.contains('youtube.com');
 
-    // Check if redirected to YouTube Music main page
-    if (urlStr.startsWith('https://music.youtube.com')) {
+    final isGoogleAuthPage = urlStr.contains('accounts.google.com/signin') ||
+        urlStr.contains('accounts.google.com/v3/signin') ||
+        urlStr.contains('accounts.google.com/ServiceLogin');
+
+    if (isMusicOrYt && !isGoogleAuthPage) {
       setState(() {
         _isLoading = true;
         _statusText = 'EXTRACTING SESSION COOKIES...';
       });
 
       try {
-        final cookies = await _cookieManager?.getCookies(
-          url: WebUri('https://music.youtube.com/'),
-        );
+        final musicCookies = await _cookieManager?.getCookies(
+              url: WebUri('https://music.youtube.com/'),
+            ) ??
+            [];
+        final ytCookies = await _cookieManager?.getCookies(
+              url: WebUri('https://www.youtube.com/'),
+            ) ??
+            [];
+        final googleCookies = await _cookieManager?.getCookies(
+              url: WebUri('https://accounts.google.com/'),
+            ) ??
+            [];
 
-        if (cookies != null && cookies.isNotEmpty) {
+        final allCookiesMap = <String, String>{};
+        for (final c in [...googleCookies, ...ytCookies, ...musicCookies]) {
+          allCookiesMap[c.name] = c.value;
+        }
+
+        if (allCookiesMap.isNotEmpty) {
           final cookieHeader =
-              cookies.map((c) => '${c.name}=${c.value}').join('; ');
+              allCookiesMap.entries.map((e) => '${e.key}=${e.value}').join('; ');
 
           final sapisid = YtClient.extractCookie(cookieHeader, 'SAPISID') ??
-              YtClient.extractCookie(cookieHeader, '__Secure-3PAPISID');
+              YtClient.extractCookie(cookieHeader, '__Secure-3PAPISID') ??
+              YtClient.extractCookie(cookieHeader, 'SID');
 
           if (sapisid != null && sapisid.isNotEmpty) {
             setState(() => _statusText = 'AUTHENTICATING...');
             await widget.onLoginSuccess(cookieHeader);
-
-            // Wipe WebView session cookies for privacy
-            await _clearWebViewCookies();
 
             if (mounted) {
               Navigator.of(context).pop(true);
@@ -95,8 +114,43 @@ class _WebViewLoginScreenState extends State<WebViewLoginScreen> {
         title: const Text('GOOGLE LOGIN'),
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: () => _webViewController?.reload(),
+            tooltip: 'Lấy cookie ngay',
+            icon: const Icon(Icons.check_circle_outline),
+            onPressed: () => _checkAndExtractCookies(),
+          ),
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert),
+            color: theme.surface,
+            onSelected: (val) {
+              if (val == 'ytmusic') {
+                _webViewController?.loadUrl(
+                  urlRequest: URLRequest(url: WebUri(youtubeMusicUrl)),
+                );
+              } else if (val == 'direct') {
+                _webViewController?.loadUrl(
+                  urlRequest: URLRequest(url: WebUri(directGoogleLoginUrl)),
+                );
+              } else if (val == 'reload') {
+                _webViewController?.reload();
+              }
+            },
+            itemBuilder: (ctx) => [
+              PopupMenuItem(
+                value: 'ytmusic',
+                child: Text('Trang chủ YouTube Music',
+                    style: TextStyle(fontFamily: 'monospace', color: theme.textPrimary, fontSize: 12)),
+              ),
+              PopupMenuItem(
+                value: 'direct',
+                child: Text('Đến trang đăng nhập Google',
+                    style: TextStyle(fontFamily: 'monospace', color: theme.textPrimary, fontSize: 12)),
+              ),
+              PopupMenuItem(
+                value: 'reload',
+                child: Text('Tải lại trang',
+                    style: TextStyle(fontFamily: 'monospace', color: theme.textPrimary, fontSize: 12)),
+              ),
+            ],
           ),
         ],
       ),
@@ -104,14 +158,17 @@ class _WebViewLoginScreenState extends State<WebViewLoginScreen> {
         children: [
           InAppWebView(
             initialUrlRequest: URLRequest(
-              url: WebUri(loginUrl),
+              url: WebUri(youtubeMusicUrl),
             ),
             initialSettings: InAppWebViewSettings(
               javaScriptEnabled: true,
-              cacheEnabled: false,
-              clearCache: true,
-              userAgent:
-                  'Mozilla/5.0 (Linux; Android 14; Pixel 7 Pro) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Mobile Safari/537.36',
+              domStorageEnabled: true,
+              databaseEnabled: true,
+              cacheEnabled: true,
+              clearCache: false,
+              thirdPartyCookiesEnabled: true,
+              userAgent: mobileChromeUserAgent,
+              preferredContentMode: UserPreferredContentMode.RECOMMENDED,
             ),
             onWebViewCreated: (controller) {
               _webViewController = controller;
@@ -121,6 +178,9 @@ class _WebViewLoginScreenState extends State<WebViewLoginScreen> {
             },
             onLoadStop: (controller, url) async {
               setState(() => _isLoading = false);
+              await _checkAndExtractCookies(url);
+            },
+            onUpdateVisitedHistory: (controller, url, isReload) async {
               await _checkAndExtractCookies(url);
             },
           ),

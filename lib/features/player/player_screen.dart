@@ -5,7 +5,6 @@ import '../../core/widgets/pixel_widgets.dart';
 import '../../core/widgets/pixel_image.dart';
 import '../../core/widgets/pixel_icon.dart';
 import '../../core/providers/player_providers.dart';
-import '../../audio/queue_controller.dart';
 import 'pixel_visualizer.dart';
 import 'queue_bottom_sheet.dart';
 
@@ -166,6 +165,27 @@ class PlayerScreen extends ConsumerWidget {
                       ),
                     ],
                   ),
+                  if (playerService.errorMessage != null) ...[
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.red.withValues(alpha: 0.15),
+                        border: Border.all(color: Colors.redAccent, width: 1),
+                      ),
+                      child: Text(
+                        playerService.errorMessage!,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          fontFamily: 'monospace',
+                          fontSize: 10,
+                          color: Colors.redAccent,
+                        ),
+                      ),
+                    ),
+                  ],
                 ],
               ),
 
@@ -229,13 +249,25 @@ class PlayerScreen extends ConsumerWidget {
                     isPrimary: true,
                     padding: const EdgeInsets.all(16),
                     onPressed: () => playerService.togglePlayPause(),
-                    child: PixelIcon(
-                      playerService.isPlaying
-                          ? PixelIconType.pause
-                          : PixelIconType.play,
-                      size: 32,
-                      color: Colors.white,
-                    ),
+                    child: playerService.isLoading
+                        ? const SizedBox(
+                            width: 32,
+                            height: 32,
+                            child: Padding(
+                              padding: EdgeInsets.all(4),
+                              child: CircularProgressIndicator(
+                                strokeWidth: 3,
+                                color: Colors.white,
+                              ),
+                            ),
+                          )
+                        : PixelIcon(
+                            playerService.isPlaying
+                                ? PixelIconType.pause
+                                : PixelIconType.play,
+                            size: 32,
+                            color: Colors.white,
+                          ),
                   ),
                   // Next button
                   IconButton(

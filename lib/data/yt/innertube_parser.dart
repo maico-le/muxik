@@ -214,7 +214,7 @@ class InnerTubeParser {
       final title = _extractTitleFromFlex(flexCols) ?? 'Unknown Title';
       final artists = _extractArtistsFromFlex(flexCols);
       final album = _extractAlbumFromFlex(flexCols);
-      final durationMs = _extractDurationFromFlex(flexCols);
+      final durationMs = _extractDuration(renderer);
       final thumb = extractThumbnail(renderer['thumbnail']);
       final setVideoId = renderer['playlistSetVideoId'] as String?;
 
@@ -283,7 +283,7 @@ class InnerTubeParser {
       // 3. Subtitle / artists / album / duration
       final artists = _extractArtistsFromFlex(flexCols);
       final album = _extractAlbumFromFlex(flexCols);
-      final durationMs = _extractDurationFromFlex(flexCols);
+      final durationMs = _extractDuration(item);
 
       // Determine result type
       SearchResultType type;
@@ -418,31 +418,81 @@ class InnerTubeParser {
     return extractRunsText(thirdCol?['text']);
   }
 
-  static int _extractDurationFromFlex(List<dynamic> flexCols) {
+  static int _extractDuration(Map<String, dynamic> item) {
+    // 1. Check fixedColumns
+    final fixedCols = item['fixedColumns'] as List<dynamic>? ?? [];
+    for (final col in fixedCols) {
+      if (col is Map<String, dynamic>) {
+        final renderer = col['musicResponsiveListItemFixedColumnRenderer'] ??
+            col['musicResponsiveListItemFlexColumnRenderer'];
+        final ms = _parseDurationFromTextNode(renderer?['text']);
+        if (ms > 0) return ms;
+      }
+    }
+
+    // 2. Check flexColumns
+    final flexCols = item['flexColumns'] as List<dynamic>? ?? [];
     for (final col in flexCols) {
-      final renderer = col['musicResponsiveListItemFlexColumnRenderer'];
-      final runs = renderer?['text']?['runs'] as List<dynamic>?;
+      if (col is Map<String, dynamic>) {
+        final renderer = col['musicResponsiveListItemFlexColumnRenderer'] ??
+            col['musicResponsiveListItemFixedColumnRenderer'];
+        final ms = _parseDurationFromTextNode(renderer?['text']);
+        if (ms > 0) return ms;
+      }
+    }
+
+    // 3. Check lengthText
+    final lengthMs = _parseDurationFromTextNode(item['lengthText']);
+    if (lengthMs > 0) return lengthMs;
+
+    // 4. Check duration
+    final durMs = _parseDurationFromTextNode(item['duration']);
+    if (durMs > 0) return durMs;
+
+    // 5. Check playlistItemData
+    final pData = item['playlistItemData'];
+    if (pData is Map<String, dynamic>) {
+      final durSec = int.tryParse(pData['durationSeconds']?.toString() ?? '');
+      if (durSec != null && durSec > 0) return durSec * 1000;
+      final durStr = pData['duration']?.toString();
+      final ms = _parseDurationString(durStr);
+      if (ms > 0) return ms;
+    }
+
+    return 0;
+  }
+
+  static int _parseDurationFromTextNode(dynamic textNode) {
+    if (textNode == null) return 0;
+    if (textNode is Map<String, dynamic>) {
+      final runs = textNode['runs'] as List<dynamic>?;
       if (runs != null) {
         for (final run in runs) {
-          final text = run['text']?.toString().trim();
-          if (text != null && RegExp(r'^\d+:\d{2}(:\d{2})?$').hasMatch(text)) {
-            final parts = text.split(':').map(int.parse).toList();
-            if (parts.length == 2) {
-              return (parts[0] * 60 + parts[1]) * 1000;
-            } else if (parts.length == 3) {
-              return (parts[0] * 3600 + parts[1] * 60 + parts[2]) * 1000;
-            }
+          if (run is Map<String, dynamic>) {
+            final text = run['text']?.toString();
+            final ms = _parseDurationString(text);
+            if (ms > 0) return ms;
           }
         }
       }
-      final simpleText = renderer?['text']?['simpleText']?.toString().trim();
-      if (simpleText != null && RegExp(r'^\d+:\d{2}(:\d{2})?$').hasMatch(simpleText)) {
-        final parts = simpleText.split(':').map(int.parse).toList();
-        if (parts.length == 2) {
-          return (parts[0] * 60 + parts[1]) * 1000;
-        } else if (parts.length == 3) {
-          return (parts[0] * 3600 + parts[1] * 60 + parts[2]) * 1000;
-        }
+      final simpleText = textNode['simpleText']?.toString();
+      final ms = _parseDurationString(simpleText);
+      if (ms > 0) return ms;
+    } else if (textNode is String) {
+      return _parseDurationString(textNode);
+    }
+    return 0;
+  }
+
+  static int _parseDurationString(String? text) {
+    if (text == null || text.isEmpty) return 0;
+    final match = RegExp(r'(?:(\d+):)?(\d{1,2}):(\d{2})').firstMatch(text.trim());
+    if (match != null) {
+      final h = match.group(1) != null ? int.tryParse(match.group(1)!) ?? 0 : 0;
+      final m = int.tryParse(match.group(2)!) ?? 0;
+      final s = int.tryParse(match.group(3)!) ?? 0;
+      if (s < 60) {
+        return (h * 3600 + m * 60 + s) * 1000;
       }
     }
     return 0;

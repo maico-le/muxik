@@ -10,6 +10,7 @@ import '../../core/providers/search_providers.dart';
 import '../../core/providers/player_providers.dart';
 import '../../data/yt/yt_models.dart';
 import '../playlist/add_to_playlist_dialog.dart';
+import '../player/player_screen.dart';
 
 class SearchScreen extends ConsumerStatefulWidget {
   const SearchScreen({super.key});
@@ -428,23 +429,35 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
         badgeLabel = 'MEDIA';
     }
 
+    final playerService = ref.watch(playerServiceProvider);
+    final isCurrentTrack =
+        item.isPlayable && playerService.currentTrack?.videoId == item.id;
+    final isPlaying = isCurrentTrack && playerService.isPlaying;
+
+    final playableTracks = allItems
+        .where((i) => i.isPlayable)
+        .map((i) => i.toYtTrack())
+        .toList();
+    final startIndex = playableTracks.indexWhere((t) => t.videoId == item.id);
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: PixelCard(
         padding: const EdgeInsets.all(8),
+        backgroundColor: isCurrentTrack
+            ? theme.primary.withValues(alpha: 0.1)
+            : theme.surface,
         child: InkWell(
           onTap: () {
             if (item.isPlayable) {
-              final playableTracks = allItems
-                  .where((i) => i.isPlayable)
-                  .map((i) => i.toYtTrack())
-                  .toList();
-              final startIndex =
-                  playableTracks.indexWhere((t) => t.videoId == item.id);
               if (startIndex != -1) {
-                ref
-                    .read(playerServiceProvider)
-                    .playQueue(playableTracks, startIndex: startIndex);
+                if (!isCurrentTrack ||
+                    playerService.status == PlayerStatus.error) {
+                  playerService.playQueue(playableTracks, startIndex: startIndex);
+                } else if (!playerService.isPlaying) {
+                  playerService.play();
+                }
+                PlayerScreen.show(context);
               }
             } else if (item.type == SearchResultType.playlist ||
                 item.type == SearchResultType.album) {
@@ -471,7 +484,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                         fontFamily: 'monospace',
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
-                        color: theme.textPrimary,
+                        color: isCurrentTrack ? theme.primary : theme.textPrimary,
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -506,7 +519,23 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                 ),
               ),
               if (item.isPlayable) ...[
-                const SizedBox(width: 4),
+                IconButton(
+                  icon: PixelIcon(
+                    isPlaying ? PixelIconType.pause : PixelIconType.play,
+                    size: 16,
+                    color: isCurrentTrack ? theme.primary : theme.textPrimary,
+                  ),
+                  tooltip: isPlaying ? 'Tạm dừng' : 'Phát',
+                  onPressed: () {
+                    if (startIndex != -1) {
+                      if (isCurrentTrack) {
+                        playerService.togglePlayPause();
+                      } else {
+                        playerService.playQueue(playableTracks, startIndex: startIndex);
+                      }
+                    }
+                  },
+                ),
                 PopupMenuButton<String>(
                   icon: const Icon(Icons.more_vert, size: 16),
                   padding: EdgeInsets.zero,

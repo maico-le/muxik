@@ -41,7 +41,8 @@ dependencies:
   cached_network_image: ^3.3.1
 
   # Stream resolution fallback
-  youtube_explode_dart: ^2.2.1
+  youtube_explode_dart: ^3.1.0
+  http: ^1.2.0
 
   # UI utilities
   flutter_svg: ^2.0.10+1
