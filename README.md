@@ -1,7 +1,7 @@
 <div align="center">
 
 # 🎵 Muxik
-### *Trình Nghe Nhạc YouTube Music Phong Cách Retro Pixel Art*
+### *Retro Pixel Art YouTube Music Player for Android*
 
 [![Platform](https://img.shields.io/badge/Platform-Android-3DDC84?style=for-the-badge&logo=android&logoColor=white)](https://github.com/maico-le/muxik/releases)
 [![Version](https://img.shields.io/badge/Version-v1.0.0-FA520F?style=for-the-badge)](https://github.com/maico-le/muxik/releases/latest)
@@ -10,77 +10,77 @@
 
 <br/>
 
-### 📲 [👉 TẢI VỀ FILE CÀI ĐẶT APK CHO ANDROID (BẢN MỚI NHẤT) 👈](https://github.com/maico-le/muxik/releases/latest/download/app-release.apk)
-*Hoặc truy cập trang [GitHub Releases](https://github.com/maico-le/muxik/releases) để xem toàn bộ các bản phát hành.*
+### 📲 [👉 DOWNLOAD LATEST MUXIK APK FOR ANDROID 👈](https://github.com/maico-le/muxik/releases/latest/download/app-release.apk)
+*Or view all previous releases and changelogs on the [GitHub Releases](https://github.com/maico-le/muxik/releases) page.*
 
 ---
 
 </div>
 
-## 💡 Giới thiệu
+## 💡 Overview
 
-**Muxik** là ứng dụng nghe nhạc YouTube Music cho Android dành cho những ai tìm kiếm trải nghiệm **nghe nhạc thuần túy, mượt mà khi tắt màn hình, tiết kiệm dung lượng 4G/5G tối đa** và khoác lên mình phong cách đồ họa **Retro Pixel Art** ấm áp lấy cảm hứng từ [Mistral.ai](https://mistral.ai/).
+**Muxik** is a lightweight, ad-free YouTube Music player for Android engineered for **screen-off background playback**, **extreme 4G/5G data savings ($\le 25\text{ MB/hour}$)**, and a warm **Retro Pixel Art** interface inspired by the aesthetic of [Mistral.ai](https://mistral.ai/).
 
-Không quảng cáo phiền toái, không tải video tốn data, tập trung 100% vào âm thanh chất lượng cao và giao diện hoài cổ độc đáo.
-
----
-
-## ✨ Điểm nổi bật không thể bỏ qua
-
-### 📴 1. Phát nhạc nền khi Tắt màn hình & Màn hình khoá
-- Sử dụng Android Foreground Service chuẩn chỉnh (`mediaPlayback`), nghe nhạc liên tục không bị gián đoạn khi bạn tắt máy, bỏ vào túi quần hoặc chuyển sang ứng dụng khác.
-- Điều khiển đầy đủ ngay trên màn hình khoá và thanh thông báo: Play/Pause, Next, Previous, Seek tua bài, hiển thị bìa album pixelated.
-- Xử lý âm thanh thông minh (Audio Focus): Tự động tạm dừng khi có cuộc gọi đến và tự phát lại sau khi cúp máy; tự động dừng khi bạn rút tai nghe.
-
-### ⚡ 2. Siêu Tiết Kiệm dữ liệu di động ($\le 25\text{ MB/giờ}$)
-- **Nhận diện mạng tự động**: Phân biệt Wi-Fi và Di động (4G/5G). Coi các điểm phát Wi-Fi Hotspot chia sẻ từ điện thoại như mạng di động để bảo vệ gói cước của bạn.
-- **Tối ưu bitrate âm thanh**:
-  - Khi dùng 4G/5G: Ưu tiên luồng âm thanh Opus tối ưu (~48 kbps) $\approx 20.6\text{ MB/giờ} \le 25\text{ MB/giờ}$ (tiết kiệm hơn 60% dữ liệu so với app YouTube thông thường).
-  - Khi dùng Wi-Fi: Tự động chuyển sang luồng âm thanh chất lượng cao nhất (Opus 160 kbps hoặc AAC 128 kbps).
-- **Chế độ Siêu Tiết Kiệm (Super Data Saver)**: Tắt tải ảnh bìa mạng, chỉ tải audio tiết kiệm, đưa mức tiêu thụ xuống dưới $20\text{ MB/giờ}$.
-- **Đồng hồ đo lưu lượng thực tế (Data Meter)**: Thống kê chi tiết từng byte mạng tiêu thụ theo ngày và tháng, hiển thị trực quan bằng biểu đồ cột 8-bit trong phần Cài đặt.
-
-### 💾 3. Nghe lại lần 2 tiêu tốn đúng 0 Byte mạng (Offline LRU Cache)
-- Mọi bài hát bạn nghe sẽ được tự động lưu vào bộ nhớ đệm (Cache) trên máy.
-- **Nghe lại các bài hát quen thuộc hoàn toàn không tốn thêm bất kỳ dung lượng mạng nào**.
-- Tự động dọn dẹp theo cơ chế LRU (ưu tiên giữ bài hay nghe, tự dọn bài cũ khi đầy bộ nhớ đệm từ 100MB – 5GB tùy bạn chọn).
-
-### 🎨 4. Phong cách Retro Pixel Art đầy cảm xúc
-- Bảng màu cam ấm Mistral: Cam `#FA520F`, hổ phách `#FFAF00`, vàng `#FFD800`, nền kem `#FFFAEB` và viền đen phẳng không bo góc.
-- Ảnh bìa album được xử lý điểm ảnh hóa (Pixelated Resampling) vừa mang chất hoài cổ vừa tối ưu dung lượng tải ảnh.
-- Dàn Equalizer 8-bit sống động nhảy giật bậc thang theo giai điệu bài hát.
-
-### 🔐 5. Đăng nhập Google & Đồng bộ Playlist chính chủ
-- Đăng nhập trực tiếp qua trang Google WebView chính thức của YouTube Music.
-- Tự động tải về toàn bộ Danh sách phát (Playlist), Bài hát đã thích (Liked Songs), và Lịch sử của bạn.
-- **Cam kết an toàn tuyệt đối**: Phiên đăng nhập chỉ được lưu trong khoá bảo mật phần cứng (`flutter_secure_storage`) trên chính thiết bị của bạn, tuyệt đối không gửi tài khoản ra bất kỳ máy chủ bên thứ ba nào.
-
-### 🎲 6. Thuật toán Trộn bài thông minh (Shuffle Bag)
-- Cơ chế Shuffle Bag đảm bảo xáo trộn công bằng: Tất cả bài hát trong playlist đều được nghe đúng 1 lần trước khi chu kỳ lặp lại bắt đầu (không bị tình trạng bài phát liên tục, bài không bao giờ được nghe).
-- Hỗ trợ 4 chế độ lặp: `Tắt`, `Lặp 1 bài`, `Lặp danh sách`, và `Lặp N lần (ONE×N)` (lặp bài hiện tại 2–10 lần rồi mới tự động chuyển bài kế tiếp).
+Zero video bloat, zero intrusive ads. Enjoy pure music with seamless lock screen controls, offline disk caching, and authentic retro pixel album art.
 
 ---
 
-## 📥 Hướng dẫn cài đặt cho Android
+## ✨ Key Features
 
-1. Nhấn vào link: [**Tải Muxik APK (Bản mới nhất)**](https://github.com/maico-le/muxik/releases/latest/download/app-release.apk).
-2. Khi tải xong, mở file `.apk` và chọn **Cài đặt**.
-   *(Nếu hệ điều hành hỏi quyền cho phép cài đặt ứng dụng từ nguồn ngoài trình duyệt, hãy chọn **Cho phép / Allow**)*.
-3. Mở Muxik, vào **Cài đặt** -> chọn **Đăng nhập Google** để thưởng thức kho nhạc YouTube của riêng bạn!
+### 📴 1. Screen-Off & Lock Screen Background Playback
+- Runs as a persistent Android Foreground Service (`mediaPlayback`), streaming continuously when you lock your device, switch apps, or slip your phone into your pocket.
+- Full notification shade and lock-screen media controls: Play, Pause, Next, Previous, Seek slider, and pixelated album artwork.
+- Smart Audio Focus: Automatically pauses for incoming phone calls and resumes on hangup; auto-pauses when headphones are unplugged (`becomingNoisy`).
+
+### ⚡ 2. Extreme Cellular Data Savings ($\le 25\text{ MB/hour}$)
+- **Real-Time Network Intelligence**: Automatically distinguishes between Wi-Fi and Cellular (4G/5G). Treats metered phone hotspots as mobile data to protect your data plan.
+- **Dynamic Bitrate Optimization**:
+  - **On Cellular**: Prioritizes lightweight Opus streams (~48 kbps) $\approx 20.6\text{ MB/hour} \le 25\text{ MB/hour}$—cutting mobile data usage by over 60% compared to typical streaming apps.
+  - **On Wi-Fi**: Automatically promotes streams to maximum fidelity (Opus 160 kbps or AAC 128 kbps).
+- **Super Data Saver Mode**: Disables remote thumbnail downloads, locking audio to ultra-low bitrate for consumption below $20\text{ MB/hour}$.
+- **Built-in Data Meter**: Tracks exact transfer bytes separated by day, month, network type, and category (Audio, Image, API) with an 8-bit stepped pixel bar chart.
+
+### 💾 3. Zero-Data Subsequent Replays (LRU Disk Audio Cache)
+- Played tracks are automatically cached to local device storage.
+- **Replaying your favorite tracks consumes exactly 0 bytes of network data**.
+- Automated Least Recently Used (LRU) cache manager cleans up old songs when disk usage reaches your preferred threshold (100MB to 5GB).
+
+### 🎨 4. Warm Retro Pixel Art Aesthetic
+- Palette inspired by Mistral.ai: Flame Orange (`#FA520F`), Bright Orange (`#FF8205`), Amber (`#FFAF00`), Gold (`#FFD800`), Cream (`#FFFAEB`), and crisp black borders.
+- Handcrafted pixelated album art downsampling—crisp, authentic retro vibe while saving mobile bandwidth.
+- Animated 8-bit stepped equalizer visualizer dancing to the rhythm of your music.
+
+### 🔐 5. Official Google Sign-In & Library Sync
+- Sign in directly through Google's official YouTube Music WebView authentication.
+- Automatically syncs your custom Playlists, Liked Songs, and History.
+- **Strict Privacy Guarantee**: Account cookies are strictly stored inside device hardware security (`flutter_secure_storage`). Credentials and tokens are **never** transmitted to any third-party server.
+
+### 🎲 6. Fair Shuffle Bag & Multi-Mode Looping
+- **Shuffle Bag**: Ensures truly fair playback—every track in your playlist is played exactly once before any song repeats.
+- **Flexible Loop Modes**: Choose between `Off`, `Repeat Current Song`, `Repeat Entire Queue`, or `Repeat N Times (ONE×N)` (plays the current track 2–10 times before progressing).
 
 ---
 
-## 🔋 Mẹo quan trọng: Tránh bị tắt nhạc nền trên các máy Android
+## 📥 Quick Installation (Android)
 
-Một số dòng máy (đặc biệt là **Xiaomi/Redmi - MIUI/HyperOS**, **Samsung - OneUI**, **Oppo/Realme - ColorOS**, **Huawei**) có chính sách tiết kiệm pin rất gắt gao có thể tắt ngầm ứng dụng:
+1. Tap to download: [**Muxik APK (Latest)**](https://github.com/maico-le/muxik/releases/latest/download/app-release.apk).
+2. Once downloaded, open the `.apk` file and tap **Install**.
+   *(If prompted by Android, grant **Allow from this source** for your browser)*.
+3. Open Muxik, head to **Settings** -> tap **Sign In** to sync your YouTube Music library!
 
-1. Vào **Cài đặt hệ thống** của điện thoại.
-2. Chọn **Ứng dụng** -> **Quản lý ứng dụng** -> Tìm **Muxik**.
-3. Chọn mục **Tiết kiệm pin (Battery Saver)** -> Đổi thành **"Không giới hạn" (No restrictions)**.
-4. Bật mục **"Tự khởi chạy" (Auto-start)** nếu có.
+---
+
+## 🔋 Important: Prevent Android Background Killing
+
+Aggressive OEM battery managers on certain devices (**Xiaomi/Redmi - MIUI/HyperOS**, **Samsung - OneUI**, **Oppo/Realme - ColorOS**, **Huawei - EMUI**) may kill background audio services:
+
+1. Open your phone's **System Settings**.
+2. Go to **Apps** -> **Manage Apps** -> Locate **Muxik**.
+3. Tap **Battery Saver** -> Change to **No restrictions**.
+4. Enable **Auto-start** if the option exists.
 
 ---
 
 <div align="center">
-  <sub>Phát triển bởi <a href="https://github.com/maico-le">maico-le</a> • Trải nghiệm âm nhạc phong cách Retro Pixel</sub>
+  <sub>Crafted with passion by <a href="https://github.com/maico-le">maico-le</a> • Pure Retro Pixel Music Experience</sub>
 </div>
