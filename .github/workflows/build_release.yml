@@ -38,6 +38,10 @@ jobs:
       - name: Install Dependencies
         run: flutter pub get
 
+      - name: Patch Deprecated ProGuard in Pub Dependencies
+        run: |
+          find "$HOME/.pub-cache" -name "build.gradle" -exec sed -i 's/proguard-android\.txt/proguard-android-optimize.txt/g' {} +
+
       - name: Generate Drift Database Code
         run: dart run build_runner build --delete-conflicting-outputs
 

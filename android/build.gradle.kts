@@ -5,6 +5,16 @@ allprojects {
     }
 }
 
+gradle.beforeProject {
+    val buildGradle = file("build.gradle")
+    if (buildGradle.exists()) {
+        val text = buildGradle.readText()
+        if (text.contains("proguard-android.txt")) {
+            buildGradle.writeText(text.replace("proguard-android.txt", "proguard-android-optimize.txt"))
+        }
+    }
+}
+
 val newBuildDir: Directory =
     rootProject.layout.buildDirectory
         .dir("../../build")
