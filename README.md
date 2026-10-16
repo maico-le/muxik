@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="assets/app_icon.png" alt="Muxik Logo" width="128" height="128" />
+
 # 🎵 Muxik
 ### *Retro Pixel Art YouTube Music Player for Android*
 
